@@ -41,8 +41,9 @@ export default function Tasks({ user }) {
     setTemplates(data || [])
   }
 
-  async function generateFromTemplates(tmpl, existing) {
-    const existingIds = existing.map(t => t.template_id).filter(Boolean)
+  async function generateFromTemplates(tmpl) {
+    const { data: existing } = await supabase.from('tasks').select('template_id').eq('date', todayISO)
+    const existingIds = (existing || []).map(t => t.template_id).filter(Boolean)
     const toCreate = tmpl.filter(t => !existingIds.includes(t.id))
     if (toCreate.length === 0) return
     await supabase.from('tasks').insert(toCreate.map(t => ({
@@ -54,7 +55,7 @@ export default function Tasks({ user }) {
   }
 
   useEffect(() => {
-    if (templates.length > 0) generateFromTemplates(templates, tasks)
+    if (templates.length > 0) generateFromTemplates(templates)
   }, [templates])
 
   async function toggleDone(id, current) {
@@ -145,7 +146,6 @@ export default function Tasks({ user }) {
 
   return (
     <div>
-      {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <h2 style={{ color: 'var(--purple)', fontSize: 22 }}>المهام</h2>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -157,10 +157,8 @@ export default function Tasks({ user }) {
 
       <div style={{ color: 'var(--gold)', fontSize: 13, marginBottom: 16 }}>📅 {today}</div>
 
-      {/* ===== TASKS VIEW ===== */}
       {view === 'tasks' && (
         <>
-          {/* Shift Filter */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
             {shifts.map(s => (
               <button key={s} onClick={() => setFilterShift(s)} style={{
@@ -172,7 +170,6 @@ export default function Tasks({ user }) {
             ))}
           </div>
 
-          {/* Branch Filter (owner only) */}
           {isOwner && (
             <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
               {branches.map(b => (
@@ -186,7 +183,6 @@ export default function Tasks({ user }) {
             </div>
           )}
 
-          {/* Progress */}
           <div style={{ background: 'white', borderRadius: 12, padding: 16, marginBottom: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
               <span style={{ fontSize: 14, color: '#666' }}>إنجاز الشفت {filterShift === 'صباحي' ? '🌅' : '🌙'}</span>
@@ -197,7 +193,6 @@ export default function Tasks({ user }) {
             </div>
           </div>
 
-          {/* Add/Edit Task Form */}
           {showForm && isOwner && (
             <div style={{ background: 'white', borderRadius: 12, padding: 20, marginBottom: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
               <h3 style={{ color: 'var(--purple)', marginBottom: 16 }}>{editTask ? 'تعديل المهمة' : 'مهمة جديدة'}</h3>
@@ -223,7 +218,6 @@ export default function Tasks({ user }) {
             </div>
           )}
 
-          {/* Task List */}
           {loading ? (
             <div style={{ textAlign: 'center', color: '#aaa', padding: 40 }}>جاري التحميل...</div>
           ) : myTasks.length === 0 ? (
@@ -267,14 +261,12 @@ export default function Tasks({ user }) {
         </>
       )}
 
-      {/* ===== TEMPLATES VIEW ===== */}
       {view === 'templates' && isOwner && (
         <>
           <div style={{ background: '#fff8e1', borderRadius: 10, padding: 12, marginBottom: 16, fontSize: 13, color: '#f57c00' }}>
             ⚙️ القوالب هي المهام الثابتة التي تتولد تلقائياً كل يوم
           </div>
 
-          {/* Add/Edit Template Form */}
           {showForm && (
             <div style={{ background: 'white', borderRadius: 12, padding: 20, marginBottom: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
               <h3 style={{ color: 'var(--purple)', marginBottom: 16 }}>{editTemplate ? 'تعديل القالب' : 'قالب جديد'}</h3>
@@ -299,7 +291,6 @@ export default function Tasks({ user }) {
             </div>
           )}
 
-          {/* Template List */}
           {templates.length === 0 ? (
             <div style={{ textAlign: 'center', color: '#aaa', padding: 40 }}>لا توجد قوالب بعد — أضف أول مهمة ثابتة</div>
           ) : (
