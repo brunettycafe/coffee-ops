@@ -6,6 +6,7 @@ import Announcements from './pages/Announcements.jsx'
 import AdminPanel from './pages/AdminPanel.jsx'
 import Sales from './pages/Sales.jsx'
 import Waste from './pages/Waste.jsx'
+import KPI from './pages/KPI.jsx'
 
 export default function App() {
   const [user, setUser] = useState(null)
@@ -18,6 +19,7 @@ export default function App() {
     { key: 'sales', label: 'المبيعات' },
     { key: 'waste', label: 'الهدر' },
     { key: 'tasks', label: 'المهام' },
+    { key: 'kpi', label: 'الأداء' },
     { key: 'announcements', label: 'التوجيهات' },
     ...(user.role === 'owner' ? [{ key: 'admin', label: 'الإدارة' }] : [])
   ]
