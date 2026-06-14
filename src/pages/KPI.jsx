@@ -5,7 +5,7 @@ const periods = ['يناير', 'فبراير', 'مارس', 'أبريل', 'ماي
 const currentPeriod = periods[new Date().getMonth()] + ' ' + new Date().getFullYear()
 
 export default function KPI({ user }) {
-  const [view, setView] = useState('reviews') // reviews | metrics
+  const [view, setView] = useState('reviews')
   const [metrics, setMetrics] = useState([])
   const [staff, setStaff] = useState([])
   const [reviews, setReviews] = useState([])
@@ -111,7 +111,6 @@ export default function KPI({ user }) {
 
   return (
     <div>
-      {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <h2 style={{ color: 'var(--purple)', fontSize: 22 }}>📊 مؤشرات الأداء</h2>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -123,11 +122,10 @@ export default function KPI({ user }) {
         </div>
       </div>
 
-      {/* Metrics Management */}
       {view === 'metrics' && isOwner && (
         <div>
           <div style={{ background: '#fff8e1', borderRadius: 10, padding: 12, marginBottom: 16, fontSize: 13, color: '#f57c00', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span>⚠️ مجموع الأوزان الحالي: <strong>{totalWeight}%</strong> {totalWeight !== 100 ? '(يُفضل أن يكون 100%)' : '✅'}</span>
+            <span>⚠️ مجموع الأوزان: <strong>{totalWeight}%</strong> {totalWeight !== 100 ? '(يُفضل 100%)' : '✅'}</span>
             <button onClick={() => { setShowMetricForm(true); setEditMetric(null); setMetricForm({ name: '', weight: 10 }) }} style={solidBtn}>+ إضافة بند</button>
           </div>
 
@@ -144,8 +142,7 @@ export default function KPI({ user }) {
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>الوزن (%)</div>
                   <input
-                    type="number"
-                    min="1" max="100"
+                    type="number" min="1" max="100"
                     value={metricForm.weight}
                     onChange={e => setMetricForm(p => ({ ...p, weight: e.target.value }))}
                     style={inputStyle}
@@ -176,10 +173,8 @@ export default function KPI({ user }) {
         </div>
       )}
 
-      {/* Reviews */}
       {view === 'reviews' && (
         <div>
-          {/* Period Selector */}
           <div style={{ marginBottom: 20 }}>
             <select value={selectedPeriod} onChange={e => setSelectedPeriod(e.target.value)} style={{ ...inputStyle, width: 'auto', display: 'inline-block' }}>
               {periods.map(p => {
@@ -192,12 +187,9 @@ export default function KPI({ user }) {
           {metrics.length === 0 ? (
             <div style={{ textAlign: 'center', color: '#aaa', padding: 40 }}>لا توجد بنود — أضف بنود من ⚙️ البنود</div>
           ) : selectedStaff ? (
-            /* Review Form */
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                <h3 style={{ color: 'var(--purple)' }}>
-                  تقييم: {staff.find(s => s.id === selectedStaff)?.name}
-                </h3>
+                <h3 style={{ color: 'var(--purple)' }}>تقييم: {staff.find(s => s.id === selectedStaff)?.name}</h3>
                 <button onClick={() => { setSelectedStaff(null); setScores({}) }} style={outlineBtn}>← رجوع</button>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
@@ -228,10 +220,9 @@ export default function KPI({ user }) {
               <button onClick={saveReview} disabled={saving} style={solidBtn}>{saving ? 'جاري الحفظ...' : '💾 حفظ التقييم'}</button>
             </div>
           ) : (
-            /* Staff List */
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {staff.length === 0 ? (
-                <div style={{ textAlign: 'center', color: '#aaa', padding: 40 }}>لا يوجد موظفون في جدول staff</div>
+                <div style={{ textAlign: 'center', color: '#aaa', padding: 40 }}>لا يوجد موظفون</div>
               ) : staff.map(s => {
                 const score = getStaffScore(s.id)
                 return (
@@ -243,7 +234,7 @@ export default function KPI({ user }) {
                   }}>
                     <div>
                       <div style={{ fontWeight: 600, fontSize: 15 }}>{s.name}</div>
-                      <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>{s.role} — {s.branch}</div>
+                      <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>{s.role}</div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       {score !== null ? (
