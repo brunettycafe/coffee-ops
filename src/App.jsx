@@ -4,12 +4,21 @@ import Dashboard from './pages/Dashboard.jsx'
 import Tasks from './pages/Tasks.jsx'
 import Announcements from './pages/Announcements.jsx'
 import AdminPanel from './pages/AdminPanel.jsx'
+import Sales from './pages/Sales.jsx'
 
 export default function App() {
   const [user, setUser] = useState(null)
   const [page, setPage] = useState('dashboard')
 
   if (!user) return <Login onLogin={setUser} />
+
+  const navItems = [
+    { key: 'dashboard', label: 'الرئيسية' },
+    { key: 'sales', label: 'المبيعات' },
+    { key: 'tasks', label: 'المهام' },
+    { key: 'announcements', label: 'التوجيهات' },
+    ...(user.role === 'owner' ? [{ key: 'admin', label: 'الإدارة' }] : [])
+  ]
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
@@ -22,15 +31,13 @@ export default function App() {
       }}>
         <span style={{ color: 'var(--gold)', fontWeight: 700, fontSize: 20 }}>BRONTI OS</span>
         <div style={{ display: 'flex', gap: 16 }}>
-          {['dashboard','tasks','announcements', user.role==='owner' ? 'admin' : null].filter(Boolean).map(p => (
-            <button key={p} onClick={() => setPage(p)} style={{
-              background: page === p ? 'var(--gold)' : 'transparent',
+          {navItems.map(({ key, label }) => (
+            <button key={key} onClick={() => setPage(key)} style={{
+              background: page === key ? 'var(--gold)' : 'transparent',
               color: 'white', border: 'none', padding: '8px 16px',
               borderRadius: 8, cursor: 'pointer', fontFamily: 'Tajawal',
               fontSize: 14
-            }}>
-              {p === 'dashboard' ? 'الرئيسية' : p === 'tasks' ? 'المهام' : p === 'announcements' ? 'التوجيهات' : 'الإدارة'}
-            </button>
+            }}>{label}</button>
           ))}
         </div>
         <button onClick={() => setUser(null)} style={{
@@ -41,6 +48,7 @@ export default function App() {
       </nav>
       <main style={{ padding: 24 }}>
         {page === 'dashboard' && <Dashboard user={user} />}
+        {page === 'sales' && <Sales user={user} />}
         {page === 'tasks' && <Tasks user={user} />}
         {page === 'announcements' && <Announcements user={user} />}
         {page === 'admin' && user.role === 'owner' && <AdminPanel />}
