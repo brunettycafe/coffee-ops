@@ -5,6 +5,7 @@ import Tasks from './pages/Tasks.jsx'
 import Announcements from './pages/Announcements.jsx'
 import AdminPanel from './pages/AdminPanel.jsx'
 import Sales from './pages/Sales.jsx'
+import Waste from './pages/Waste.jsx'
 
 export default function App() {
   const [user, setUser] = useState(null)
@@ -15,6 +16,7 @@ export default function App() {
   const navItems = [
     { key: 'dashboard', label: 'الرئيسية' },
     { key: 'sales', label: 'المبيعات' },
+    { key: 'waste', label: 'الهدر' },
     { key: 'tasks', label: 'المهام' },
     { key: 'announcements', label: 'التوجيهات' },
     ...(user.role === 'owner' ? [{ key: 'admin', label: 'الإدارة' }] : [])
@@ -49,6 +51,7 @@ export default function App() {
       <main style={{ padding: 24 }}>
         {page === 'dashboard' && <Dashboard user={user} />}
         {page === 'sales' && <Sales user={user} />}
+        {page === 'waste' && <Waste user={user} />}
         {page === 'tasks' && <Tasks user={user} />}
         {page === 'announcements' && <Announcements user={user} />}
         {page === 'admin' && user.role === 'owner' && <AdminPanel />}
