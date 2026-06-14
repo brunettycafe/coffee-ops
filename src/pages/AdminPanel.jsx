@@ -1,20 +1,27 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { supabase } from '../supabase.js'
 
 export default function AdminPanel() {
-  const [users, setUsers] = useState(() => {
-    return JSON.parse(localStorage.getItem('bronti_users') || '[]')
-  })
+  const [users, setUsers] = useState([])
+  const [loading, setLoading] = useState(true)
 
-  function approveUser(id) {
-    const updated = users.map(u => u.id === id ? { ...u, approved: true } : u)
-    setUsers(updated)
-    localStorage.setItem('bronti_users', JSON.stringify(updated))
+  useEffect(() => { fetchUsers() }, [])
+
+  async function fetchUsers() {
+    setLoading(true)
+    const { data } = await supabase.from('users').select('*').order('created_at', { ascending: false })
+    setUsers(data || [])
+    setLoading(false)
   }
 
-  function deleteUser(id) {
-    const updated = users.filter(u => u.id !== id)
-    setUsers(updated)
-    localStorage.setItem('bronti_users', JSON.stringify(updated))
+  async function approveUser(id) {
+    await supabase.from('users').update({ approved: true }).eq('id', id)
+    fetchUsers()
+  }
+
+  async function deleteUser(id) {
+    await supabase.from('users').delete().eq('id', id)
+    fetchUsers()
   }
 
   const pending = users.filter(u => !u.approved)
@@ -24,12 +31,13 @@ export default function AdminPanel() {
     <div>
       <h2 style={{ color: 'var(--purple)', fontSize: 22, marginBottom: 24 }}>لوحة الإدارة</h2>
 
-      {/* Pending */}
       <div style={{ marginBottom: 32 }}>
         <h3 style={{ color: 'var(--danger)', marginBottom: 16, fontSize: 16 }}>
           طلبات التسجيل المعلقة ({pending.length})
         </h3>
-        {pending.length === 0 ? (
+        {loading ? (
+          <div style={{ color: '#aaa', fontSize: 14 }}>جاري التحميل...</div>
+        ) : pending.length === 0 ? (
           <div style={{ color: '#aaa', fontSize: 14 }}>لا توجد طلبات معلقة</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -37,10 +45,13 @@ export default function AdminPanel() {
               <div key={u.id} style={{
                 background: 'white', borderRadius: 12, padding: 16,
                 boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                borderRight: '4px solid var(--danger)'
               }}>
                 <div>
-                  <div style={{ fontWeight: 700, color: 'var(--purple)', fontSize: 15 }}>{u.name} / {u.nameEn}</div>
+                  <div style={{ fontWeight: 700, color: 'var(--purple)', fontSize: 15 }}>
+                    {u.name} {u.name_en ? `/ ${u.name_en}` : ''}
+                  </div>
                   <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>
                     📍 {u.branch} — {u.role === 'owner' ? 'مالك' : 'موظف'}
                   </div>
@@ -61,7 +72,6 @@ export default function AdminPanel() {
         )}
       </div>
 
-      {/* Approved */}
       <div>
         <h3 style={{ color: 'var(--success)', marginBottom: 16, fontSize: 16 }}>
           الموظفون النشطون ({approved.length})
@@ -73,17 +83,23 @@ export default function AdminPanel() {
             {approved.map(u => (
               <div key={u.id} style={{
                 background: 'white', borderRadius: 12, padding: 16,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.08)'
+                boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                borderRight: '4px solid var(--success)'
               }}>
                 <div style={{ fontWeight: 700, color: 'var(--purple)', fontSize: 15, marginBottom: 4 }}>
-                  {u.name} / {u.nameEn}
+                  {u.name} {u.name_en ? `/ ${u.name_en}` : ''}
                 </div>
                 <div style={{ fontSize: 13, color: '#888' }}>📍 {u.branch}</div>
-                <button onClick={() => deleteUser(u.id)} style={{
-                  marginTop: 12, background: 'none', border: '1px solid #eee',
-                  color: '#aaa', padding: '4px 12px', borderRadius: 8,
-                  cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 12
-                }}>حذف</button>
+                <div style={{ fontSize: 12, color: '#aaa', marginTop: 4 }}>
+                  {u.role === 'owner' ? '👑 مالك' : '👤 موظف'}
+                </div>
+                {u.role !== 'owner' && (
+                  <button onClick={() => deleteUser(u.id)} style={{
+                    marginTop: 12, background: 'none', border: '1px solid #eee',
+                    color: '#aaa', padding: '4px 12px', borderRadius: 8,
+                    cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 12
+                  }}>حذف</button>
+                )}
               </div>
             ))}
           </div>
