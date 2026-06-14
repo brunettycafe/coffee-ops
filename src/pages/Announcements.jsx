@@ -1,39 +1,48 @@
-import React, { useState } from 'react'
-
-const defaultAnnouncements = [
-  { id: 1, title: 'تنبيه مهم', body: 'يرجى الالتزام بمواعيد الدوام الصباحي اعتباراً من هذا الأسبوع.', author: 'بندر', date: '2026-06-14', priority: 'عالي', branch: 'الكل' },
-  { id: 2, title: 'تحديث إجراءات التنظيف', body: 'تم تحديث بروتوكول تنظيف الماكينات — يرجى مراجعة الدليل الجديد.', author: 'بندر', date: '2026-06-13', priority: 'متوسط', branch: 'الكل' },
-  { id: 3, title: 'اجتماع أسبوعي', body: 'سيُعقد الاجتماع الأسبوعي يوم الاثنين الساعة 10 صباحاً.', author: 'بندر', date: '2026-06-12', priority: 'منخفض', branch: 'الناصرية' },
-]
+import React, { useState, useEffect } from 'react'
+import { supabase } from '../supabase.js'
 
 const priorityColor = { 'عالي': 'var(--danger)', 'متوسط': 'var(--gold)', 'منخفض': 'var(--olive)' }
 const priorityBg = { 'عالي': '#fce4ec', 'متوسط': '#fff8e1', 'منخفض': '#e8f5e9' }
+const branches = ['الكل', 'الناصرية', 'النخيل', 'الربوة', 'الفرع الرابع', 'الفرع الخامس']
 
 export default function Announcements({ user }) {
-  const [announcements, setAnnouncements] = useState(defaultAnnouncements)
+  const [announcements, setAnnouncements] = useState([])
   const [showAdd, setShowAdd] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [form, setForm] = useState({ title: '', body: '', priority: 'متوسط', branch: 'الكل' })
 
-  const branches = ['الكل', 'الناصرية', 'النخيل', 'الربوة', 'الفرع الرابع', 'الفرع الخامس']
+  useEffect(() => { fetchAnnouncements() }, [])
+
+  async function fetchAnnouncements() {
+    setLoading(true)
+    const { data } = await supabase
+      .from('announcements')
+      .select('*')
+      .order('created_at', { ascending: false })
+    setAnnouncements(data || [])
+    setLoading(false)
+  }
+
+  async function addAnnouncement() {
+    if (!form.title || !form.body) return
+    await supabase.from('announcements').insert([{
+      title: form.title, body: form.body,
+      priority: form.priority, branch: form.branch,
+      author: user.name
+    }])
+    setForm({ title: '', body: '', priority: 'متوسط', branch: 'الكل' })
+    setShowAdd(false)
+    fetchAnnouncements()
+  }
+
+  async function deleteAnnouncement(id) {
+    await supabase.from('announcements').delete().eq('id', id)
+    fetchAnnouncements()
+  }
 
   const myAnnouncements = user.role === 'owner'
     ? announcements
     : announcements.filter(a => a.branch === 'الكل' || a.branch === user.branch)
-
-  function addAnnouncement() {
-    if (!form.title || !form.body) return
-    setAnnouncements([{
-      ...form, id: Date.now(),
-      author: user.name,
-      date: new Date().toISOString().split('T')[0]
-    }, ...announcements])
-    setForm({ title: '', body: '', priority: 'متوسط', branch: 'الكل' })
-    setShowAdd(false)
-  }
-
-  function deleteAnnouncement(id) {
-    setAnnouncements(announcements.filter(a => a.id !== id))
-  }
 
   return (
     <div>
@@ -70,48 +79,44 @@ export default function Announcements({ user }) {
         </div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {myAnnouncements.map(a => (
-          <div key={a.id} style={{
-            background: 'white', borderRadius: 12, padding: 20,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-            borderRight: `4px solid ${priorityColor[a.priority]}`
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                  <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--purple)' }}>{a.title}</span>
-                  <span style={{
-                    background: priorityBg[a.priority], color: priorityColor[a.priority],
-                    padding: '2px 10px', borderRadius: 12, fontSize: 12
-                  }}>{a.priority}</span>
-                  {a.branch !== 'الكل' && (
-                    <span style={{ background: '#f0f0f0', color: '#666', padding: '2px 10px', borderRadius: 12, fontSize: 12 }}>
-                      {a.branch}
-                    </span>
-                  )}
+      {loading ? (
+        <div style={{ textAlign: 'center', color: '#aaa', padding: 40 }}>جاري التحميل...</div>
+      ) : myAnnouncements.length === 0 ? (
+        <div style={{ textAlign: 'center', color: '#aaa', padding: 40 }}>لا توجد توجيهات بعد</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {myAnnouncements.map(a => (
+            <div key={a.id} style={{
+              background: 'white', borderRadius: 12, padding: 20,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+              borderRight: `4px solid ${priorityColor[a.priority]}`
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                    <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--purple)' }}>{a.title}</span>
+                    <span style={{ background: priorityBg[a.priority], color: priorityColor[a.priority], padding: '2px 10px', borderRadius: 12, fontSize: 12 }}>{a.priority}</span>
+                    {a.branch !== 'الكل' && (
+                      <span style={{ background: '#f0f0f0', color: '#666', padding: '2px 10px', borderRadius: 12, fontSize: 12 }}>{a.branch}</span>
+                    )}
+                  </div>
+                  <p style={{ color: '#555', fontSize: 14, lineHeight: 1.7, marginBottom: 10 }}>{a.body}</p>
+                  <div style={{ fontSize: 12, color: '#aaa' }}>
+                    {a.author} — {new Date(a.created_at).toLocaleDateString('ar-SA')}
+                  </div>
                 </div>
-                <p style={{ color: '#555', fontSize: 14, lineHeight: 1.7, marginBottom: 10 }}>{a.body}</p>
-                <div style={{ fontSize: 12, color: '#aaa' }}>
-                  {a.author} — {a.date}
-                </div>
+                {user.role === 'owner' && (
+                  <button onClick={() => deleteAnnouncement(a.id)} style={{
+                    background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', fontSize: 20, marginRight: 8
+                  }}>×</button>
+                )}
               </div>
-              {user.role === 'owner' && (
-                <button onClick={() => deleteAnnouncement(a.id)} style={{
-                  background: 'none', border: 'none', color: '#ccc',
-                  cursor: 'pointer', fontSize: 18, marginRight: 8
-                }}>×</button>
-              )}
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
 
-const inputStyle = {
-  width: '100%', padding: '10px 14px', marginBottom: 10,
-  border: '1px solid #ddd', borderRadius: 8,
-  fontFamily: 'Tajawal', fontSize: 14, textAlign: 'right', display: 'block'
-}
+const inputStyle = { width: '100%', padding: '10px 14px', marginBottom: 10, border: '1px solid #ddd', borderRadius: 8, fontFamily: 'Tajawal', fontSize: 14, textAlign: 'right', display: 'block' }
