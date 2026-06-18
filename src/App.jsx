@@ -54,6 +54,7 @@ export default function App() {
         {page === 'dashboard' && <Dashboard user={user} />}
         {page === 'sales' && <Sales user={user} />}
         {page === 'waste' && <Waste user={user} />}
+        {page === 'kpi' && <KPI user={user} />}
         {page === 'tasks' && <Tasks user={user} />}
         {page === 'announcements' && <Announcements user={user} />}
         {page === 'admin' && user.role === 'owner' && <AdminPanel />}
