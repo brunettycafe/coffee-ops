@@ -1,75 +1,78 @@
 import React, { useState } from 'react'
-import Login from './pages/Login.jsx'
-import Dashboard from './pages/Dashboard.jsx'
-import Tasks from './pages/Tasks.jsx'
-import Announcements from './pages/Announcements.jsx'
-import AdminPanel from './pages/AdminPanel.jsx'
-import Sales from './pages/Sales.jsx'
-import Waste from './pages/Waste.jsx'
-import KPI from './pages/KPI.jsx'
-import { t } from './translations.js'
+import { supabase } from '../supabase.js'
+import { t } from '../App.jsx'
 
-export default function App() {
-  const [user, setUser] = useState(null)
-  const [page, setPage] = useState('dashboard')
-  const [lang, setLang] = useState('ar')
+const branches = ['الناصرية', 'النخيل', 'الربوة', 'الفرع الرابع', 'الفرع الخامس']
 
-  if (!user) return <Login onLogin={setUser} lang={lang} setLang={setLang} />
-
+export default function Login({ onLogin, lang, setLang }) {
+  const [isRegister, setIsRegister] = useState(false)
+  const [form, setForm] = useState({ name: '', nameEn: '', password: '', branch: 'الناصرية', role: 'staff' })
+  const [loginForm, setLoginForm] = useState({ name: '', password: '' })
+  const [msg, setMsg] = useState('')
+  const [loading, setLoading] = useState(false)
   const tr = t[lang]
 
-  const navItems = [
-    { key: 'dashboard', label: tr.dashboard },
-    { key: 'sales', label: tr.sales },
-    { key: 'waste', label: tr.waste },
-    { key: 'tasks', label: tr.tasks },
-    { key: 'kpi', label: tr.kpi },
-    { key: 'announcements', label: tr.announcements },
-    ...(user.role === 'owner' ? [{ key: 'admin', label: tr.admin }] : [])
-  ]
+  async function handleLogin() {
+    if (loginForm.name === 'Bandar' && loginForm.password === 'bronti2024') {
+      return onLogin({ id: 'owner-1', name: 'Bandar', name_en: 'Bandar', role: 'owner', branch: 'all', approved: true })
+    }
+    setLoading(true)
+    const { data, error } = await supabase.from('users').select('*').eq('name', loginForm.name).eq('password', loginForm.password).single()
+    setLoading(false)
+    if (error || !data) return setMsg(tr.wrongCredentials)
+    if (!data.approved) return setMsg(tr.pendingApproval)
+    onLogin(data)
+  }
+
+  async function handleRegister() {
+    if (!form.name || !form.password) return setMsg(tr.enterNamePassword)
+    setLoading(true)
+    const { error } = await supabase.from('users').insert([{ name: form.name, name_en: form.nameEn, password: form.password, branch: form.branch, role: 'staff', approved: false }])
+    setLoading(false)
+    if (error) return setMsg(tr.registerError)
+    setMsg(tr.requestSent)
+    setIsRegister(false)
+  }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', direction: lang === 'ar' ? 'rtl' : 'ltr' }}>
-      <nav style={{
-        background: 'var(--purple)',
-        padding: '12px 24px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between'
-      }}>
-        <span style={{ color: 'var(--gold)', fontWeight: 700, fontSize: 20 }}>BRONTI OS</span>
-        <div style={{ display: 'flex', gap: 16 }}>
-          {navItems.map(({ key, label }) => (
-            <button key={key} onClick={() => setPage(key)} style={{
-              background: page === key ? 'var(--gold)' : 'transparent',
-              color: 'white', border: 'none', padding: '8px 16px',
-              borderRadius: 8, cursor: 'pointer', fontFamily: 'Tajawal',
-              fontSize: 14
-            }}>{label}</button>
-          ))}
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--purple)', direction: lang === 'ar' ? 'rtl' : 'ltr' }}>
+      <div style={{ background: 'white', borderRadius: 16, padding: 40, width: 360, boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
+        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+          <div style={{ fontSize: 32, fontWeight: 700, color: 'var(--purple)' }}>BRONTI OS</div>
+          <div style={{ color: 'var(--gold)', fontSize: 14, marginTop: 4 }}>{tr.systemName}</div>
+          <button onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')} style={{ marginTop: 12, background: 'var(--purple)', color: 'white', border: 'none', padding: '4px 14px', borderRadius: 16, cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }}>
+            {lang === 'ar' ? 'English' : 'عربي'}
+          </button>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')} style={{
-            background: 'rgba(255,255,255,0.15)', color: 'white',
-            border: '1px solid rgba(255,255,255,0.3)', padding: '6px 12px',
-            borderRadius: 8, cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13
-          }}>{lang === 'ar' ? 'EN' : 'ع'}</button>
-          <button onClick={() => setUser(null)} style={{
-            background: 'transparent', color: '#ccc',
-            border: '1px solid #ccc', padding: '6px 12px',
-            borderRadius: 8, cursor: 'pointer', fontFamily: 'Tajawal'
-          }}>{tr.logout}</button>
-        </div>
-      </nav>
-      <main style={{ padding: 24 }}>
-        {page === 'dashboard' && <Dashboard user={user} lang={lang} />}
-        {page === 'sales' && <Sales user={user} lang={lang} />}
-        {page === 'waste' && <Waste user={user} lang={lang} />}
-        {page === 'kpi' && <KPI user={user} lang={lang} />}
-        {page === 'tasks' && <Tasks user={user} lang={lang} />}
-        {page === 'announcements' && <Announcements user={user} lang={lang} />}
-        {page === 'admin' && user.role === 'owner' && <AdminPanel lang={lang} />}
-      </main>
+        {!isRegister ? (
+          <>
+            <input placeholder={tr.username} value={loginForm.name} onChange={e => setLoginForm({...loginForm, name: e.target.value})} style={inputStyle} />
+            <input placeholder={tr.password} type="password" value={loginForm.password} onChange={e => setLoginForm({...loginForm, password: e.target.value})} style={inputStyle} />
+            <button onClick={handleLogin} disabled={loading} style={btnStyle}>{loading ? tr.loggingIn : tr.loginBtn}</button>
+            <div style={{ textAlign: 'center', marginTop: 16 }}>
+              <span style={{ color: '#888', fontSize: 13 }}>{tr.noAccount} </span>
+              <span onClick={() => { setIsRegister(true); setMsg('') }} style={{ color: 'var(--purple)', cursor: 'pointer', fontSize: 13 }}>{tr.registerNow}</span>
+            </div>
+          </>
+        ) : (
+          <>
+            <input placeholder={tr.nameAr} value={form.name} onChange={e => setForm({...form, name: e.target.value})} style={inputStyle} />
+            <input placeholder={tr.nameEn} value={form.nameEn} onChange={e => setForm({...form, nameEn: e.target.value})} style={inputStyle} />
+            <input placeholder={tr.password} type="password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} style={inputStyle} />
+            <select value={form.branch} onChange={e => setForm({...form, branch: e.target.value})} style={inputStyle}>
+              {branches.map(b => <option key={b}>{b}</option>)}
+            </select>
+            <button onClick={handleRegister} disabled={loading} style={btnStyle}>{loading ? tr.sending : tr.sendRequest}</button>
+            <div style={{ textAlign: 'center', marginTop: 16 }}>
+              <span onClick={() => { setIsRegister(false); setMsg('') }} style={{ color: 'var(--purple)', cursor: 'pointer', fontSize: 13 }}>{tr.backToLogin}</span>
+            </div>
+          </>
+        )}
+        {msg && <div style={{ marginTop: 16, color: 'var(--danger)', textAlign: 'center', fontSize: 13 }}>{msg}</div>}
+      </div>
     </div>
   )
 }
+
+const inputStyle = { width: '100%', padding: '12px 16px', marginBottom: 12, border: '1px solid #ddd', borderRadius: 8, fontFamily: 'Tajawal', fontSize: 14, textAlign: 'right', display: 'block' }
+const btnStyle = { width: '100%', padding: '12px', background: 'var(--purple)', color: 'white', border: 'none', borderRadius: 8, fontFamily: 'Tajawal', fontSize: 16, cursor: 'pointer', marginTop: 4 }
