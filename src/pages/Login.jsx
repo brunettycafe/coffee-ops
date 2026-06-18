@@ -1,26 +1,4 @@
-
-            <button onClick={handleLogin} disabled={loading} style={btnStyle}>{loading ? tr.loggingIn : tr.loginBtn}</button>
-            <div style={{ textAlign: 'center', marginTop: 16 }}>
-              <span style={{ color: '#888', fontSize: 13 }}>{tr.noAccount} </span>
-              <span onClick={() => { setIsRegister(true); setMsg('') }} style={{ color: 'var(--purple)', cursor: 'pointer', fontSize: 13 }}>{tr.registerNow}</span>
-            </div>
-          </>
-        ) : (
-          <>
-            <input placeholder={tr.nameAr} value={form.name} onChange={e => setForm({...form, name: e.target.value})} style={inputStyle} />
-            <input placeholder={tr.nameEn} value={form.nameEn} onChange={e => setForm({...form, nameEn: e.target.value})} style={inputStyle} />
-            <input placeholder={tr.password} type="password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} style={inputStyle} />
-            <select value={form.branch} onChange={e => setForm({...form, branch: e.target.value})} style={inputStyle}>
-              {branches.map(b => <option key={b}>{b}</option>)}
-            </select>
-            <button onClick={handleRegister} disabled={loading} style={btnStyle}>{loading ? tr.sending : tr.sendRequest}</button>
-            <div style={{ textAlign: 'center', marginTop: 16 }}>
-              <span onClick={() => { setIsRegister(false); setMsg('') }} style={{ color: 'var(--purple)', cursor: 'pointer', fontSize: 13 }}>{tr.backToLogin}</span>
-            </div>
-          </>
-        )}
-        {msg && <div style={{ marginTop: 16, color: 'var(--danger)', textAlign: 'center', fontSize: 13 }}>{msg}</div>}
-      </div>import React, { useState } from 'react'
+import React, { useState } from 'react'
 import { supabase } from '../supabase.js'
 import { t } from '../translations.js'
 
@@ -70,6 +48,28 @@ export default function Login({ onLogin, lang, setLang }) {
           <>
             <input placeholder={tr.username} value={loginForm.name} onChange={e => setLoginForm({...loginForm, name: e.target.value})} style={inputStyle} />
             <input placeholder={tr.password} type="password" value={loginForm.password} onChange={e => setLoginForm({...loginForm, password: e.target.value})} style={inputStyle} />
+            <button onClick={handleLogin} disabled={loading} style={btnStyle}>{loading ? tr.loggingIn : tr.loginBtn}</button>
+            <div style={{ textAlign: 'center', marginTop: 16 }}>
+              <span style={{ color: '#888', fontSize: 13 }}>{tr.noAccount} </span>
+              <span onClick={() => { setIsRegister(true); setMsg('') }} style={{ color: 'var(--purple)', cursor: 'pointer', fontSize: 13 }}>{tr.registerNow}</span>
+            </div>
+          </>
+        ) : (
+          <>
+            <input placeholder={tr.nameAr} value={form.name} onChange={e => setForm({...form, name: e.target.value})} style={inputStyle} />
+            <input placeholder={tr.nameEn} value={form.nameEn} onChange={e => setForm({...form, nameEn: e.target.value})} style={inputStyle} />
+            <input placeholder={tr.password} type="password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} style={inputStyle} />
+            <select value={form.branch} onChange={e => setForm({...form, branch: e.target.value})} style={inputStyle}>
+              {branches.map(b => <option key={b}>{b}</option>)}
+            </select>
+            <button onClick={handleRegister} disabled={loading} style={btnStyle}>{loading ? tr.sending : tr.sendRequest}</button>
+            <div style={{ textAlign: 'center', marginTop: 16 }}>
+              <span onClick={() => { setIsRegister(false); setMsg('') }} style={{ color: 'var(--purple)', cursor: 'pointer', fontSize: 13 }}>{tr.backToLogin}</span>
+            </div>
+          </>
+        )}
+        {msg && <div style={{ marginTop: 16, color: 'var(--danger)', textAlign: 'center', fontSize: 13 }}>{msg}</div>}
+      </div>
     </div>
   )
 }
