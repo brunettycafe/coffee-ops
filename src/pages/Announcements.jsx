@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabase.js'
-import { t } from '../translations.js'
+import { t } from '../App.jsx'
 
 const priorityColor = { 'عالي': 'var(--danger)', 'متوسط': 'var(--gold)', 'منخفض': 'var(--olive)' }
 const priorityBg = { 'عالي': '#fce4ec', 'متوسط': '#fff8e1', 'منخفض': '#e8f5e9' }
