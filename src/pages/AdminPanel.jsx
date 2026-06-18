@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabase.js'
-import { t } from '../translations.js'
+import { t } from '../App.jsx'
 
 export default function AdminPanel({ lang }) {
   const tr = t[lang]
