@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabase.js'
 
-const branches = ['الناصرية', 'النخيل', 'الربوة', 'الفرع الرابع', 'الفرع الخامس']
+const branches = ['الناصرية', 'النخيل', 'الربوة', 'المطار بلازا', 'الخمسين']
+const units = ['جرام', 'كيلو', 'لتر', 'مل', 'حبة', 'كرتون']
 const todayISO = new Date().toISOString().split('T')[0]
 
-const emptyForm = { branch: 'الناصرية', item: '', quantity: '', cost: '', notes: '' }
+const emptyForm = { branch: 'الناصرية', item: '', quantity: '', unit: 'جرام', cost: '', notes: '' }
 
 export default function Waste({ user }) {
   const [logs, setLogs] = useState([])
@@ -38,6 +39,7 @@ export default function Waste({ user }) {
       branch: form.branch,
       item: form.item,
       quantity: parseFloat(form.quantity) || 0,
+      unit: form.unit,
       cost: parseFloat(form.cost) || 0,
       notes: form.notes
     }])
@@ -64,21 +66,15 @@ export default function Waste({ user }) {
 
   return (
     <div>
-      {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <h2 style={{ color: 'var(--purple)', fontSize: 22 }}>🗑️ الهدر</h2>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={e => setSelectedDate(e.target.value)}
-            style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid #ddd', fontFamily: 'Tajawal', fontSize: 13 }}
-          />
+          <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
+            style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid #ddd', fontFamily: 'Tajawal', fontSize: 13 }} />
           <button onClick={() => { setShowForm(true); setForm({ ...emptyForm, branch: myBranches[0] }) }} style={solidBtn}>+ إضافة</button>
         </div>
       </div>
 
-      {/* Total */}
       {filteredLogs.length > 0 && (
         <div style={{ background: 'white', borderRadius: 12, padding: 16, marginBottom: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: 14, color: '#666' }}>إجمالي الهدر</span>
@@ -86,7 +82,6 @@ export default function Waste({ user }) {
         </div>
       )}
 
-      {/* Branch Filter */}
       {isOwner && (
         <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
           {['الكل', ...branches].map(b => (
@@ -100,7 +95,6 @@ export default function Waste({ user }) {
         </div>
       )}
 
-      {/* Form */}
       {showForm && (
         <div style={{ background: 'white', borderRadius: 12, padding: 20, marginBottom: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
           <h3 style={{ color: 'var(--purple)', marginBottom: 16 }}>تسجيل هدر جديد</h3>
@@ -110,35 +104,20 @@ export default function Waste({ user }) {
                 {branches.map(b => <option key={b}>{b}</option>)}
               </select>
             )}
-            <input
-              placeholder="اسم الصنف *"
-              value={form.item}
-              onChange={e => setForm(p => ({ ...p, item: e.target.value }))}
-              style={{ ...inputStyle, flex: 2 }}
-            />
+            <input placeholder="اسم الصنف *" value={form.item}
+              onChange={e => setForm(p => ({ ...p, item: e.target.value }))} style={{ ...inputStyle, flex: 2 }} />
           </div>
           <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
-            <input
-              type="number"
-              placeholder="الكمية"
-              value={form.quantity}
-              onChange={e => setForm(p => ({ ...p, quantity: e.target.value }))}
-              style={{ ...inputStyle, flex: 1 }}
-            />
-            <input
-              type="number"
-              placeholder="التكلفة (ر.س) *"
-              value={form.cost}
-              onChange={e => setForm(p => ({ ...p, cost: e.target.value }))}
-              style={{ ...inputStyle, flex: 1 }}
-            />
+            <input type="number" placeholder="الكمية" value={form.quantity}
+              onChange={e => setForm(p => ({ ...p, quantity: e.target.value }))} style={{ ...inputStyle, flex: 1 }} />
+            <select value={form.unit} onChange={e => setForm(p => ({ ...p, unit: e.target.value }))} style={{ ...inputStyle, flex: 1 }}>
+              {units.map(u => <option key={u}>{u}</option>)}
+            </select>
+            <input type="number" placeholder="التكلفة (ر.س) *" value={form.cost}
+              onChange={e => setForm(p => ({ ...p, cost: e.target.value }))} style={{ ...inputStyle, flex: 1 }} />
           </div>
-          <input
-            placeholder="ملاحظات (اختياري)"
-            value={form.notes}
-            onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
-            style={{ ...inputStyle, marginBottom: 12 }}
-          />
+          <input placeholder="ملاحظات (اختياري)" value={form.notes}
+            onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} style={{ ...inputStyle, marginBottom: 12 }} />
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={saveLog} disabled={saving} style={solidBtn}>{saving ? 'جاري الحفظ...' : '💾 حفظ'}</button>
             <button onClick={() => setShowForm(false)} style={outlineBtn}>إلغاء</button>
@@ -146,7 +125,6 @@ export default function Waste({ user }) {
         </div>
       )}
 
-      {/* Logs */}
       {loading ? (
         <div style={{ textAlign: 'center', color: '#aaa', padding: 60 }}>جاري التحميل...</div>
       ) : filteredLogs.length === 0 ? (
@@ -161,27 +139,4 @@ export default function Waste({ user }) {
               display: 'flex', justifyContent: 'space-between', alignItems: 'center'
             }}>
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, fontSize: 15, color: '#333', marginBottom: 4 }}>{l.item}</div>
-                <div style={{ fontSize: 12, color: '#888', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                  <span>📍 {l.branch}</span>
-                  {l.quantity > 0 && <span>📦 {l.quantity}</span>}
-                  {l.notes && <span>📝 {l.notes}</span>}
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{ fontWeight: 700, color: 'var(--danger)', fontSize: 16 }}>{l.cost.toLocaleString()} ر.س</span>
-                {isOwner && (
-                  <button onClick={() => deleteLog(l.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>🗑️</button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
-
-const solidBtn = { padding: '8px 20px', borderRadius: 20, background: 'var(--purple)', color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }
-const outlineBtn = { padding: '8px 20px', borderRadius: 20, background: 'white', color: 'var(--purple)', border: '1px solid var(--purple)', cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }
-const inputStyle = { width: '100%', padding: '8px 12px', border: '1px solid #ddd', borderRadius: 8, fontFamily: 'Tajawal', fontSize: 14, textAlign: 'right', boxSizing: 'border-box' }
+                <div style={{ fontWeight: 600, fontSize: 15, color: '#333',
