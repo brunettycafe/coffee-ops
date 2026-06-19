@@ -4,7 +4,7 @@ import { t } from '../App.jsx'
 
 const priorityColor = { 'عالي': 'var(--danger)', 'متوسط': 'var(--gold)', 'منخفض': 'var(--olive)' }
 const priorityBg = { 'عالي': '#fce4ec', 'متوسط': '#fff8e1', 'منخفض': '#e8f5e9' }
-const branches = ['الكل', 'الناصرية', 'النخيل', 'الربوة', 'الفرع الرابع', 'الفرع الخامس']
+const branches = ['الكل', 'الناصرية', 'النخيل', 'الربوة', 'المطار بلازا', 'الخمسين']
 
 export default function Announcements({ user, lang }) {
   const tr = t[lang]
