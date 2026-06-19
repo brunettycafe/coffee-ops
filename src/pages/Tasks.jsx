@@ -44,23 +44,6 @@ export default function Tasks({ user }) {
     setTemplates(data || [])
   }
 
-  async function translateToEnglish(arabicText) {
-    if (!arabicText) return ''
-    try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 100,
-          messages: [{ role: 'user', content: 'Translate this Arabic cafe task name to English in 1-4 words only, no explanation: ' + arabicText }]
-        })
-      })
-      const data = await res.json()
-      return data.content?.[0]?.text?.trim() || ''
-    } catch { return '' }
-  }
-
   async function generateFromTemplates(tmpl) {
     const todayDayIndex = new Date().getDay()
     const todayDayAr = daysAr[todayDayIndex]
@@ -303,7 +286,7 @@ export default function Tasks({ user }) {
             <div style={{ background: 'white', borderRadius: 12, padding: 20, marginBottom: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
               <h3 style={{ color: 'var(--purple)', marginBottom: 16 }}>{editTemplate ? 'تعديل القالب' : 'قالب جديد'}</h3>
               <input placeholder="اسم المهمة بالعربي *" value={templateForm.titleAr} onChange={e => setTemplateForm(p => ({...p, titleAr: e.target.value}))} style={inputStyle} />
-              <button onClick={async () => { const en = await translateToEnglish(templateForm.titleAr); setTemplateForm(p => ({...p, titleEn: en})) }} style={{ ...outlineBtn, marginTop: 6, fontSize: 12, padding: '4px 12px' }}>🌐 ترجم تلقائياً</button>
+
               <input placeholder="Task name in English" value={templateForm.titleEn} onChange={e => setTemplateForm(p => ({...p, titleEn: e.target.value}))} style={inputStyle} />
               <div style={{ display: 'flex', gap: 12 }}>
                 <select value={templateForm.branch} onChange={e => setTemplateForm(p => ({...p, branch: e.target.value}))} style={{...inputStyle, flex: 1}}>
@@ -372,6 +355,7 @@ export default function Tasks({ user }) {
 const inputStyle = { width: '100%', padding: '10px 14px', marginBottom: 10, border: '1px solid #ddd', borderRadius: 8, fontFamily: 'Tajawal', fontSize: 14, textAlign: 'right', display: 'block' }
 const solidBtn = { padding: '8px 20px', borderRadius: 20, background: 'var(--purple)', color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }
 const outlineBtn = { padding: '8px 20px', borderRadius: 20, background: 'white', color: 'var(--purple)', border: '1px solid var(--purple)', cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }
+
 
 
 
