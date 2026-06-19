@@ -128,21 +128,27 @@ export default function App() {
     ...(user.role === 'owner' ? [{ key: 'admin', label: tr.admin }] : [])
   ]
 
+  const navIcons = { dashboard: '🏠', sales: '💰', waste: '🗑️', tasks: '✅', kpi: '📊', leaderboard: '🏆', announcements: '📢', changepassword: '🔑', admin: '⚙️' }
+
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', direction: lang === 'ar' ? 'rtl' : 'ltr' }}>
-      <nav style={{ background: 'var(--purple)', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ color: 'var(--gold)', fontWeight: 700, fontSize: 20 }}>BRONTI OS</span>
-        <div style={{ display: 'flex', gap: 16 }}>
-          {navItems.map(({ key, label }) => (
-            <button key={key} onClick={() => setPage(key)} style={{ background: page === key ? 'var(--gold)' : 'rgba(255,255,255,0.15)', color: 'white', border: 'none', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 14 }}>{label}</button>
-          ))}
-        </div>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', direction: lang === 'ar' ? 'rtl' : 'ltr', paddingBottom: 70 }}>
+      <nav style={{ background: 'var(--purple)', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ color: 'var(--gold)', fontWeight: 700, fontSize: 18 }}>BRONTI OS</span>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <button onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')} style={{ background: 'rgba(255,255,255,0.15)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }}>{lang === 'ar' ? 'EN' : 'ع'}</button>
-          <button onClick={() => setUser(null)} style={{ background: 'transparent', color: '#ccc', border: '1px solid #ccc', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontFamily: 'Tajawal' }}>{tr.logout}</button>
+          <button onClick={() => setUser(null)} style={{ background: 'transparent', color: '#ccc', border: '1px solid #ccc', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 12 }}>{tr.logout}</button>
         </div>
       </nav>
-      <main style={{ padding: 24 }}>
+      <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'var(--purple)', display: 'flex', justifyContent: 'space-around', alignItems: 'center', padding: '6px 0', zIndex: 1000, boxShadow: '0 -2px 12px rgba(0,0,0,0.15)' }}>
+        {navItems.map(({ key, label }) => (
+          <button key={key} onClick={() => setPage(key)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '4px 8px', borderRadius: 8, minWidth: 48 }}>
+            <span style={{ fontSize: 20 }}>{navIcons[key] || '•'}</span>
+            <span style={{ fontSize: 9, color: page === key ? 'var(--gold)' : 'rgba(255,255,255,0.7)', fontFamily: 'Tajawal', fontWeight: page === key ? 700 : 400, whiteSpace: 'nowrap' }}>{label.replace(/🏆 |🔑 /g, '')}</span>
+            {page === key && <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--gold)' }} />}
+          </button>
+        ))}
+      </nav>
+      <main style={{ padding: 16 }}>
         {page === 'dashboard' && <Dashboard user={user} lang={lang} />}
         {page === 'sales' && <Sales user={user} lang={lang} />}
         {page === 'waste' && <Waste user={user} lang={lang} />}
@@ -156,6 +162,7 @@ export default function App() {
     </div>
   )
 }
+
 
 
 
