@@ -5,12 +5,26 @@ import { t } from '../App.jsx'
 const branches = ['الناصرية', 'النخيل', 'الربوة', 'المطار بلازا', 'الخمسين']
 const roles = ['مدير فرع', 'مدير شفت', 'باريستا', 'كاشير', 'سايق', 'مدير تشغيل', 'owner']
 
+const roleLabel = (r, lang) => ({
+  'مدير فرع': lang === 'ar' ? 'مدير فرع' : 'Branch Manager',
+  'مدير شفت': lang === 'ar' ? 'مدير شفت' : 'Shift Manager',
+  'باريستا': lang === 'ar' ? 'باريستا' : 'Barista',
+  'كاشير': lang === 'ar' ? 'كاشير' : 'Cashier',
+  'سايق': lang === 'ar' ? 'سايق' : 'Driver',
+  'مدير تشغيل': lang === 'ar' ? 'مدير تشغيل' : 'Operations Manager',
+  'owner': lang === 'ar' ? 'مالك' : 'Owner',
+}[r] || r)
+
+const roleIcon = (r) => ({ 'owner': '👑', 'مدير تشغيل': '🔑', 'مدير فرع': '🏪', 'مدير شفت': '⏱️', 'باريستا': '☕', 'كاشير': '💳', 'سايق': '🚗' }[r] || '👤')
+
+const ALL_BRANCHES_ROLES = ['مدير تشغيل', 'owner']
+
 export default function AdminPanel({ lang }) {
   const tr = t[lang]
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ name: '', name_en: '', password: '', branch: 'الناصرية', role: 'staff' })
+  const [form, setForm] = useState({ name: '', name_en: '', password: '', branch: 'الناصرية', role: 'مدير فرع' })
   const [saving, setSaving] = useState(false)
   const [editUser, setEditUser] = useState(null)
 
@@ -22,6 +36,11 @@ export default function AdminPanel({ lang }) {
     setUsers(data || []); setLoading(false)
   }
 
+  function handleRoleChange(role) {
+    const branch = ALL_BRANCHES_ROLES.includes(role) ? 'all' : (form.branch === 'all' ? 'الناصرية' : form.branch)
+    setForm(p => ({ ...p, role, branch }))
+  }
+
   async function saveUser() {
     if (!form.name || !form.password) return
     setSaving(true)
@@ -30,10 +49,8 @@ export default function AdminPanel({ lang }) {
     } else {
       await supabase.from('users').insert([{ name: form.name, name_en: form.name_en, password: form.password, branch: form.branch, role: form.role, approved: true }])
     }
-    setSaving(false)
-    setShowForm(false)
-    setEditUser(null)
-    setForm({ name: '', name_en: '', password: '', branch: 'الناصرية', role: 'staff' })
+    setSaving(false); setShowForm(false); setEditUser(null)
+    setForm({ name: '', name_en: '', password: '', branch: 'الناصرية', role: 'مدير فرع' })
     fetchUsers()
   }
 
@@ -46,14 +63,13 @@ export default function AdminPanel({ lang }) {
 
   const pending = users.filter(u => !u.approved)
   const approved = users.filter(u => u.approved)
-
-  const roleLabel = (r) => ({ 'مدير فرع': lang === 'ar' ? 'مدير فرع' : 'Branch Manager', 'مدير شفت': lang === 'ar' ? 'مدير شفت' : 'Shift Manager', 'باريستا': lang === 'ar' ? 'باريستا' : 'Barista', 'كاشير': lang === 'ar' ? 'كاشير' : 'Cashier', 'سايق': lang === 'ar' ? 'سايق' : 'Driver', 'مدير تشغيل': lang === 'ar' ? 'مدير تشغيل' : 'Operations Manager', 'owner': lang === 'ar' ? 'مالك' : 'Owner' }[r] || r)
+  const isAllBranches = ALL_BRANCHES_ROLES.includes(form.role)
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <h2 style={{ color: 'var(--purple)', fontSize: 22 }}>{tr.adminTitle}</h2>
-        <button onClick={() => { setShowForm(true); setEditUser(null); setForm({ name: '', name_en: '', password: '', branch: 'الناصرية', role: 'staff' }) }} style={solidBtn}>
+        <button onClick={() => { setShowForm(true); setEditUser(null); setForm({ name: '', name_en: '', password: '', branch: 'الناصرية', role: 'مدير فرع' }) }} style={solidBtn}>
           {lang === 'ar' ? '+ إضافة مستخدم' : '+ Add User'}
         </button>
       </div>
@@ -75,17 +91,24 @@ export default function AdminPanel({ lang }) {
               <input type="text" value={form.password} onChange={e => setForm(p => ({...p, password: e.target.value}))} style={inputStyle} />
             </div>
             <div>
-              <div style={labelStyle}>{lang === 'ar' ? 'الفرع' : 'Branch'}</div>
-              <select value={form.branch} onChange={e => setForm(p => ({...p, branch: e.target.value}))} style={inputStyle}>
-                {branches.map(b => <option key={b}>{b}</option>)}
-              </select>
-            </div>
-            <div>
               <div style={labelStyle}>{lang === 'ar' ? 'الدور' : 'Role'}</div>
-              <select value={form.role} onChange={e => setForm(p => ({...p, role: e.target.value}))} style={inputStyle}>
-                {roles.map(r => <option key={r} value={r}>{roleLabel(r)}</option>)}
+              <select value={form.role} onChange={e => handleRoleChange(e.target.value)} style={inputStyle}>
+                {roles.map(r => <option key={r} value={r}>{roleLabel(r, lang)}</option>)}
               </select>
             </div>
+            {!isAllBranches && (
+              <div>
+                <div style={labelStyle}>{lang === 'ar' ? 'الفرع' : 'Branch'}</div>
+                <select value={form.branch} onChange={e => setForm(p => ({...p, branch: e.target.value}))} style={inputStyle}>
+                  {branches.map(b => <option key={b}>{b}</option>)}
+                </select>
+              </div>
+            )}
+            {isAllBranches && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f0f0f0', borderRadius: 8, padding: '8px 12px', fontSize: 13, color: '#666' }}>
+                🏢 {lang === 'ar' ? 'جميع الفروع' : 'All Branches'}
+              </div>
+            )}
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
             <button onClick={saveUser} disabled={saving} style={solidBtn}>{saving ? (lang === 'ar' ? 'جاري الحفظ...' : 'Saving...') : (lang === 'ar' ? '💾 حفظ' : '💾 Save')}</button>
@@ -102,7 +125,7 @@ export default function AdminPanel({ lang }) {
               <div key={u.id} style={{ background: 'white', borderRadius: 12, padding: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRight: '4px solid var(--danger)' }}>
                 <div>
                   <div style={{ fontWeight: 700, color: 'var(--purple)', fontSize: 15 }}>{u.name} {u.name_en ? `/ ${u.name_en}` : ''}</div>
-                  <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>📍 {u.branch} — {roleLabel(u.role)}</div>
+                  <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>📍 {u.branch === 'all' ? (lang === 'ar' ? 'جميع الفروع' : 'All Branches') : u.branch} — {roleLabel(u.role, lang)}</div>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button onClick={() => approveUser(u.id)} style={{ background: 'var(--success)', color: 'white', border: 'none', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }}>{tr.approve}</button>
@@ -121,8 +144,8 @@ export default function AdminPanel({ lang }) {
             {approved.map(u => (
               <div key={u.id} style={{ background: 'white', borderRadius: 12, padding: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', borderRight: '4px solid var(--success)' }}>
                 <div style={{ fontWeight: 700, color: 'var(--purple)', fontSize: 15, marginBottom: 4 }}>{u.name} {u.name_en ? `/ ${u.name_en}` : ''}</div>
-                <div style={{ fontSize: 13, color: '#888' }}>📍 {u.branch}</div>
-                <div style={{ fontSize: 12, color: '#aaa', marginTop: 4 }}>{u.role === 'owner' ? '👑' : u.role === 'manager' ? '🔑' : '👤'} {roleLabel(u.role)}</div>
+                <div style={{ fontSize: 13, color: '#888' }}>📍 {u.branch === 'all' ? (lang === 'ar' ? 'جميع الفروع' : 'All Branches') : u.branch}</div>
+                <div style={{ fontSize: 12, color: '#aaa', marginTop: 4 }}>{roleIcon(u.role)} {roleLabel(u.role, lang)}</div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                   <button onClick={() => { setEditUser(u); setForm({ name: u.name, name_en: u.name_en || '', password: u.password || '', branch: u.branch, role: u.role }); setShowForm(true) }} style={{ background: 'none', border: '1px solid var(--purple)', color: 'var(--purple)', padding: '4px 12px', borderRadius: 8, cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 12 }}>✏️</button>
                   {u.role !== 'owner' && <button onClick={() => deleteUser(u.id)} style={{ background: 'none', border: '1px solid #eee', color: '#aaa', padding: '4px 12px', borderRadius: 8, cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 12 }}>{tr.delete}</button>}
