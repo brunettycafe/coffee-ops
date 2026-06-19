@@ -7,6 +7,7 @@ import AdminPanel from './pages/AdminPanel.jsx'
 import Sales from './pages/Sales.jsx'
 import Waste from './pages/Waste.jsx'
 import KPI from './pages/KPI.jsx'
+import Leaderboard from './pages/Leaderboard.jsx'
 
 export const t = {
   ar: {
@@ -120,6 +121,7 @@ export default function App() {
     { key: 'waste', label: tr.waste },
     { key: 'tasks', label: tr.tasks },
     { key: 'kpi', label: tr.kpi },
+    { key: 'leaderboard', label: lang === 'ar' ? '🏆 التحفيز' : '🏆 Leaderboard' },
     { key: 'announcements', label: tr.announcements },
     ...(user.role === 'owner' ? [{ key: 'admin', label: tr.admin }] : [])
   ]
@@ -145,8 +147,10 @@ export default function App() {
         {page === 'kpi' && <KPI user={user} lang={lang} />}
         {page === 'tasks' && <Tasks user={user} lang={lang} />}
         {page === 'announcements' && <Announcements user={user} lang={lang} />}
+        {page === 'leaderboard' && <Leaderboard lang={lang} />}
         {page === 'admin' && user.role === 'owner' && <AdminPanel lang={lang} />}
       </main>
     </div>
   )
 }
+
