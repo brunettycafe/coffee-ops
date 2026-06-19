@@ -17,7 +17,7 @@ export default function Login({ onLogin, lang, setLang }) {
       return onLogin({ id: 'owner-1', name: 'Bandar', name_en: 'Bandar', role: 'owner', branch: 'all', approved: true })
     }
     setLoading(true)
-    const { data, error } = await supabase.from('users').select('*').or(`name.eq.${loginForm.name},name_en.eq.${loginForm.name}`).eq('password', loginForm.password).single()
+    const { data, error } = await supabase.from('users').select('*').or(`name.ilike.${loginForm.name},name_en.ilike.${loginForm.name}`).eq('password', loginForm.password).single()
     setLoading(false)
     if (error || !data) return setMsg(tr.wrongCredentials)
     if (!data.approved) return setMsg(tr.pendingApproval)
@@ -76,4 +76,5 @@ export default function Login({ onLogin, lang, setLang }) {
 
 const inputStyle = { width: '100%', padding: '12px 16px', marginBottom: 12, border: '1px solid #ddd', borderRadius: 8, fontFamily: 'Tajawal', fontSize: 14, textAlign: 'right', display: 'block' }
 const btnStyle = { width: '100%', padding: '12px', background: 'var(--purple)', color: 'white', border: 'none', borderRadius: 8, fontFamily: 'Tajawal', fontSize: 16, cursor: 'pointer', marginTop: 4 }
+
 
