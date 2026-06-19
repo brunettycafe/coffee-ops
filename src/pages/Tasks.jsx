@@ -117,9 +117,9 @@ export default function Tasks({ user }) {
   }
 
   const myTasks = tasks.filter(t => {
-    if (filterBranch !== 'الكل' && t.branch !== filterBranch) return false
+    if (!isOwner && t.branch !== user.branch) return false
+    if (isOwner && filterBranch !== 'الكل' && t.branch !== filterBranch) return false
     if (t.shift !== filterShift) return false
-    if (!isOwner && t.roles && t.roles.length > 0 && !t.roles.some(r => r === user.role)) return false
     return true
   })
 
@@ -330,3 +330,4 @@ export default function Tasks({ user }) {
 const inputStyle = { width: '100%', padding: '10px 14px', marginBottom: 10, border: '1px solid #ddd', borderRadius: 8, fontFamily: 'Tajawal', fontSize: 14, textAlign: 'right', display: 'block' }
 const solidBtn = { padding: '8px 20px', borderRadius: 20, background: 'var(--purple)', color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }
 const outlineBtn = { padding: '8px 20px', borderRadius: 20, background: 'white', color: 'var(--purple)', border: '1px solid var(--purple)', cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }
+
