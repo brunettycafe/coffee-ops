@@ -179,7 +179,7 @@ export default function Tasks({ user }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <h2 style={{ color: 'var(--purple)', fontSize: 22 }}>المهام</h2>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')} style={outlineBtn}>{lang === 'ar' ? 'English' : 'عربي'}</button>
+          
           {isOwner && <button onClick={() => { setView(v => v === 'tasks' ? 'templates' : 'tasks'); setShowForm(false) }} style={outlineBtn}>{view === 'tasks' ? '⚙️ القوالب' : '📋 المهام'}</button>}
           {isOwner && <button onClick={() => { setShowForm(true); setEditTask(null); setEditTemplate(null); setTaskForm(emptyTask); setTemplateForm(emptyTemplate) }} style={solidBtn}>+ إضافة</button>}
         </div>
@@ -372,6 +372,7 @@ export default function Tasks({ user }) {
 const inputStyle = { width: '100%', padding: '10px 14px', marginBottom: 10, border: '1px solid #ddd', borderRadius: 8, fontFamily: 'Tajawal', fontSize: 14, textAlign: 'right', display: 'block' }
 const solidBtn = { padding: '8px 20px', borderRadius: 20, background: 'var(--purple)', color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }
 const outlineBtn = { padding: '8px 20px', borderRadius: 20, background: 'white', color: 'var(--purple)', border: '1px solid var(--purple)', cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }
+
 
 
 
