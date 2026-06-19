@@ -9,8 +9,11 @@ const priorityColor = { 'عالي': 'var(--danger)', 'متوسط': 'var(--gold)'
 const today = new Date().toLocaleDateString('ar-SA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
 const todayISO = new Date().toISOString().split('T')[0]
 
+const daysAr = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت']
+const daysEn = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+
 const emptyTask = { titleAr: '', titleEn: '', branch: 'الناصرية', shift: 'صباحي', roles: [], assignee: '', priority: 'متوسط' }
-const emptyTemplate = { titleAr: '', titleEn: '', branch: 'الكل', shift: 'صباحي', roles: [], priority: 'متوسط' }
+const emptyTemplate = { titleAr: '', titleEn: '', branch: 'الكل', shift: 'صباحي', roles: [], priority: 'متوسط', days: [] }
 
 export default function Tasks({ user }) {
   const [tasks, setTasks] = useState([])
@@ -59,12 +62,15 @@ export default function Tasks({ user }) {
   }
 
   async function generateFromTemplates(tmpl) {
+    const todayDayIndex = new Date().getDay()
+    const todayDayAr = daysAr[todayDayIndex]
     const allBranches = ['الناصرية', 'النخيل', 'الربوة', 'المطار بلازا', 'الخمسين']
     const { data: existing } = await supabase.from('tasks').select('template_id, branch').eq('date', todayISO)
     const toInsert = []
     for (const t of tmpl) {
       const targetBranches = t.branch === 'الكل' ? allBranches : [t.branch]
       for (const branch of targetBranches) {
+        if (t.days && t.days.length > 0 && !t.days.includes(todayDayAr)) continue
         const alreadyExists = (existing || []).some(e => e.template_id === t.id && e.branch === branch)
         if (!alreadyExists) {
           toInsert.push({ title_ar: t.title_ar, title_en: t.title_en, branch, shift: t.shift, roles: t.roles, priority: t.priority, done: false, date: todayISO, template_id: t.id })
@@ -116,13 +122,15 @@ export default function Tasks({ user }) {
       await supabase.from('task_templates').update({
         title_ar: templateForm.titleAr, title_en: templateForm.titleEn,
         branch: templateForm.branch, shift: templateForm.shift,
-        roles: templateForm.roles, priority: templateForm.priority
+        roles: templateForm.roles, priority: templateForm.priority,
+        days: templateForm.days
       }).eq('id', editTemplate.id)
     } else {
       await supabase.from('task_templates').insert([{
         title_ar: templateForm.titleAr, title_en: templateForm.titleEn,
         branch: templateForm.branch, shift: templateForm.shift,
-        roles: templateForm.roles, priority: templateForm.priority
+        roles: templateForm.roles, priority: templateForm.priority,
+        days: templateForm.days
       }])
     }
     setTemplateForm(emptyTemplate); setEditTemplate(null); setShowForm(false); fetchTemplates()
@@ -262,6 +270,8 @@ export default function Tasks({ user }) {
                       </div>
                       <div style={{ fontSize: 12, color: '#888', marginTop: 4, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                         <span>📍 {t.branch}</span>
+                        {t.days && t.days.length > 0 && <span>📅 {t.days.join('، ')}</span>}
+                        {(!t.days || t.days.length === 0) && <span>📅 يومي</span>}
                         <span>{t.shift === 'صباحي' ? '🌅' : '🌙'} {t.shift}</span>
                         {t.assignee && <span>👤 {t.assignee}</span>}
                         {t.roles && t.roles.length > 0 && <span>🎯 {t.roles.join('، ')}</span>}
@@ -306,6 +316,15 @@ export default function Tasks({ user }) {
                   {priorities.map(p => <option key={p}>{p}</option>)}
                 </select>
               </div>
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontSize: 13, color: '#666', marginBottom: 6 }}>أيام التكرار (فاضي = يومي):</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {daysAr.map(d => (
+                    <button key={d} onClick={() => setTemplateForm(p => ({ ...p, days: p.days.includes(d) ? p.days.filter(x => x !== d) : [...p.days, d] }))} style={{ padding: '4px 10px', borderRadius: 16, fontSize: 12, cursor: 'pointer', fontFamily: 'Tajawal', border: 'none', background: templateForm.days.includes(d) ? 'var(--purple)' : '#f0f0f0', color: templateForm.days.includes(d) ? 'white' : '#666' }}>{d}</button>
+                  ))}
+                </div>
+                {templateForm.days.length === 0 && <div style={{ fontSize: 11, color: '#aaa', marginTop: 4 }}>يومي (كل الأيام)</div>}
+              </div>
               <RoleSelector form={templateForm} setForm={setTemplateForm} />
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={saveTemplate} style={solidBtn}>حفظ القالب</button>
@@ -336,7 +355,7 @@ export default function Tasks({ user }) {
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: 6 }}>
-                      <button onClick={() => { setEditTemplate(t); setTemplateForm({ titleAr: t.title_ar, titleEn: t.title_en || '', branch: t.branch, shift: t.shift, roles: t.roles || [], priority: t.priority }); setShowForm(true) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>✏️</button>
+                      <button onClick={() => { setEditTemplate(t); setTemplateForm({ titleAr: t.title_ar, titleEn: t.title_en || '', branch: t.branch, shift: t.shift, roles: t.roles || [], priority: t.priority, days: t.days || [] }); setShowForm(true) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>✏️</button>
                       <button onClick={() => deleteTemplate(t.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>🗑️</button>
                     </div>
                   </div>
@@ -353,6 +372,7 @@ export default function Tasks({ user }) {
 const inputStyle = { width: '100%', padding: '10px 14px', marginBottom: 10, border: '1px solid #ddd', borderRadius: 8, fontFamily: 'Tajawal', fontSize: 14, textAlign: 'right', display: 'block' }
 const solidBtn = { padding: '8px 20px', borderRadius: 20, background: 'var(--purple)', color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }
 const outlineBtn = { padding: '8px 20px', borderRadius: 20, background: 'white', color: 'var(--purple)', border: '1px solid var(--purple)', cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }
+
 
 
 
