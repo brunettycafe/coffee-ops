@@ -10,7 +10,7 @@ const today = new Date().toLocaleDateString('ar-SA', { weekday: 'long', year: 'n
 const todayISO = new Date().toISOString().split('T')[0]
 
 const emptyTask = { titleAr: '', titleEn: '', branch: 'الناصرية', shift: 'صباحي', roles: [], assignee: '', priority: 'متوسط' }
-const emptyTemplate = { titleAr: '', titleEn: '', branch: 'الناصرية', shift: 'صباحي', roles: [], priority: 'متوسط' }
+const emptyTemplate = { titleAr: '', titleEn: '', branch: 'الكل', shift: 'صباحي', roles: [], priority: 'متوسط' }
 
 export default function Tasks({ user }) {
   const [tasks, setTasks] = useState([])
@@ -42,15 +42,20 @@ export default function Tasks({ user }) {
   }
 
   async function generateFromTemplates(tmpl) {
-    const { data: existing } = await supabase.from('tasks').select('template_id').eq('date', todayISO)
-    const existingIds = (existing || []).map(t => t.template_id).filter(Boolean)
-    const toCreate = tmpl.filter(t => !existingIds.includes(t.id))
-    if (toCreate.length === 0) return
-    await supabase.from('tasks').insert(toCreate.map(t => ({
-      title_ar: t.title_ar, title_en: t.title_en,
-      branch: t.branch, shift: t.shift, roles: t.roles,
-      priority: t.priority, done: false, date: todayISO, template_id: t.id
-    })))
+    const allBranches = ['الناصرية', 'النخيل', 'الربوة', 'المطار بلازا', 'الخمسين']
+    const { data: existing } = await supabase.from('tasks').select('template_id, branch').eq('date', todayISO)
+    const toInsert = []
+    for (const t of tmpl) {
+      const targetBranches = t.branch === 'الكل' ? allBranches : [t.branch]
+      for (const branch of targetBranches) {
+        const alreadyExists = (existing || []).some(e => e.template_id === t.id && e.branch === branch)
+        if (!alreadyExists) {
+          toInsert.push({ title_ar: t.title_ar, title_en: t.title_en, branch, shift: t.shift, roles: t.roles, priority: t.priority, done: false, date: todayISO, template_id: t.id })
+        }
+      }
+    }
+    if (toInsert.length === 0) return
+    await supabase.from('tasks').insert(toInsert)
     fetchTasks()
   }
 
@@ -200,7 +205,7 @@ export default function Tasks({ user }) {
               <input placeholder="Task name in English" value={taskForm.titleEn} onChange={e => setTaskForm(p => ({...p, titleEn: e.target.value}))} style={inputStyle} />
               <div style={{ display: 'flex', gap: 12 }}>
                 <select value={taskForm.branch} onChange={e => setTaskForm(p => ({...p, branch: e.target.value}))} style={{...inputStyle, flex: 1}}>
-                  {branches.filter(b => b !== 'الكل').map(b => <option key={b}>{b}</option>)}
+                  {['الكل', 'الناصرية', 'النخيل', 'الربوة', 'المطار بلازا', 'الخمسين'].map(b => <option key={b}>{b}</option>)}
                 </select>
                 <select value={taskForm.shift} onChange={e => setTaskForm(p => ({...p, shift: e.target.value}))} style={{...inputStyle, flex: 1}}>
                   {shifts.map(s => <option key={s}>{s}</option>)}
@@ -330,4 +335,5 @@ export default function Tasks({ user }) {
 const inputStyle = { width: '100%', padding: '10px 14px', marginBottom: 10, border: '1px solid #ddd', borderRadius: 8, fontFamily: 'Tajawal', fontSize: 14, textAlign: 'right', display: 'block' }
 const solidBtn = { padding: '8px 20px', borderRadius: 20, background: 'var(--purple)', color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }
 const outlineBtn = { padding: '8px 20px', borderRadius: 20, background: 'white', color: 'var(--purple)', border: '1px solid var(--purple)', cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }
+
 
