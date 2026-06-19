@@ -307,7 +307,7 @@ export default function Tasks({ user }) {
               <input placeholder="Task name in English" value={templateForm.titleEn} onChange={e => setTemplateForm(p => ({...p, titleEn: e.target.value}))} style={inputStyle} />
               <div style={{ display: 'flex', gap: 12 }}>
                 <select value={templateForm.branch} onChange={e => setTemplateForm(p => ({...p, branch: e.target.value}))} style={{...inputStyle, flex: 1}}>
-                  {branches.filter(b => b !== 'الكل').map(b => <option key={b}>{b}</option>)}
+                  {branches.map(b => <option key={b}>{b}</option>)}
                 </select>
                 <select value={templateForm.shift} onChange={e => setTemplateForm(p => ({...p, shift: e.target.value}))} style={{...inputStyle, flex: 1}}>
                   {shifts.map(s => <option key={s}>{s}</option>)}
@@ -372,6 +372,7 @@ export default function Tasks({ user }) {
 const inputStyle = { width: '100%', padding: '10px 14px', marginBottom: 10, border: '1px solid #ddd', borderRadius: 8, fontFamily: 'Tajawal', fontSize: 14, textAlign: 'right', display: 'block' }
 const solidBtn = { padding: '8px 20px', borderRadius: 20, background: 'var(--purple)', color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }
 const outlineBtn = { padding: '8px 20px', borderRadius: 20, background: 'white', color: 'var(--purple)', border: '1px solid var(--purple)', cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }
+
 
 
 
