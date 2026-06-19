@@ -134,7 +134,7 @@ export default function App() {
         <span style={{ color: 'var(--gold)', fontWeight: 700, fontSize: 20 }}>BRONTI OS</span>
         <div style={{ display: 'flex', gap: 16 }}>
           {navItems.map(({ key, label }) => (
-            <button key={key} onClick={() => setPage(key)} style={{ background: page === key ? 'var(--gold)' : 'transparent', color: 'white', border: 'none', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 14 }}>{label}</button>
+            <button key={key} onClick={() => setPage(key)} style={{ background: page === key ? 'var(--gold)' : 'rgba(255,255,255,0.15)', color: 'white', border: 'none', padding: '8px 16px', borderRadius: 8, cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 14 }}>{label}</button>
           ))}
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -156,5 +156,6 @@ export default function App() {
     </div>
   )
 }
+
 
 
