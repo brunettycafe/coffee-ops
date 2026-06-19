@@ -3,7 +3,7 @@ import { supabase } from '../supabase.js'
 import { t } from '../App.jsx'
 
 const branches = ['الناصرية', 'النخيل', 'الربوة', 'المطار بلازا', 'الخمسين']
-const roles = ['staff', 'manager', 'owner']
+const roles = ['مدير فرع', 'مدير شفت', 'باريستا', 'كاشير', 'سايق', 'مدير تشغيل', 'owner']
 
 export default function AdminPanel({ lang }) {
   const tr = t[lang]
@@ -47,7 +47,7 @@ export default function AdminPanel({ lang }) {
   const pending = users.filter(u => !u.approved)
   const approved = users.filter(u => u.approved)
 
-  const roleLabel = (r) => ({ staff: lang === 'ar' ? 'موظف' : 'Staff', manager: lang === 'ar' ? 'مدير' : 'Manager', owner: lang === 'ar' ? 'مالك' : 'Owner' }[r] || r)
+  const roleLabel = (r) => ({ 'مدير فرع': lang === 'ar' ? 'مدير فرع' : 'Branch Manager', 'مدير شفت': lang === 'ar' ? 'مدير شفت' : 'Shift Manager', 'باريستا': lang === 'ar' ? 'باريستا' : 'Barista', 'كاشير': lang === 'ar' ? 'كاشير' : 'Cashier', 'سايق': lang === 'ar' ? 'سايق' : 'Driver', 'مدير تشغيل': lang === 'ar' ? 'مدير تشغيل' : 'Operations Manager', 'owner': lang === 'ar' ? 'مالك' : 'Owner' }[r] || r)
 
   return (
     <div>
