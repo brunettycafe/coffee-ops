@@ -15,12 +15,11 @@ const daysEn = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'
 const emptyTask = { titleAr: '', titleEn: '', branch: 'الناصرية', shift: 'صباحي', roles: [], assignee: '', priority: 'متوسط' }
 const emptyTemplate = { titleAr: '', titleEn: '', branch: 'الكل', shift: 'صباحي', roles: [], priority: 'متوسط', days: [] }
 
-export default function Tasks({ user }) {
+export default function Tasks({ user, lang }) {
   const [tasks, setTasks] = useState([])
   const [templates, setTemplates] = useState([])
   const [filterBranch, setFilterBranch] = useState('الكل')
   const [filterShift, setFilterShift] = useState('صباحي')
-  const [lang, setLang] = useState('ar')
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState('tasks')
   const [showForm, setShowForm] = useState(false)
@@ -355,6 +354,7 @@ export default function Tasks({ user }) {
 const inputStyle = { width: '100%', padding: '10px 14px', marginBottom: 10, border: '1px solid #ddd', borderRadius: 8, fontFamily: 'Tajawal', fontSize: 14, textAlign: 'right', display: 'block' }
 const solidBtn = { padding: '8px 20px', borderRadius: 20, background: 'var(--purple)', color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }
 const outlineBtn = { padding: '8px 20px', borderRadius: 20, background: 'white', color: 'var(--purple)', border: '1px solid var(--purple)', cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }
+
 
 
 
