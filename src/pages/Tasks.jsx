@@ -129,7 +129,11 @@ export default function Tasks({ user, lang }) {
   }
 
   const isBranchManager = user.role === 'مدير فرع' || user.role === 'مدير تشغيل'
-  const canComplete = isOwner || !isBranchManager
+  const canCompleteTask = (t) => {
+    if (isOwner) return true
+    if (!t.roles || t.roles.length === 0) return true
+    return t.roles.includes(user.role)
+  }
 
   const myTasks = tasks.filter(t => {
     if (!isOwner && t.branch !== user.branch) return false
@@ -248,7 +252,7 @@ export default function Tasks({ user, lang }) {
                   borderRight: `4px solid ${priorityColor[t.priority] || 'var(--gold)'}`
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <input type="checkbox" checked={t.done} onChange={() => canComplete && toggleDone(t.id, t.done)} disabled={!canComplete}
+                    <input type="checkbox" checked={t.done} onChange={() => canCompleteTask(t) && toggleDone(t.id, t.done)} disabled={!canCompleteTask(t)}
                       style={{ width: 20, height: 20, cursor: 'pointer', accentColor: 'var(--purple)' }} />
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 15, fontWeight: 600, textDecoration: t.done ? 'line-through' : 'none', color: t.done ? '#aaa' : '#333' }}>
@@ -358,6 +362,7 @@ export default function Tasks({ user, lang }) {
 const inputStyle = { width: '100%', padding: '10px 14px', marginBottom: 10, border: '1px solid #ddd', borderRadius: 8, fontFamily: 'Tajawal', fontSize: 14, textAlign: 'right', display: 'block' }
 const solidBtn = { padding: '8px 20px', borderRadius: 20, background: 'var(--purple)', color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }
 const outlineBtn = { padding: '8px 20px', borderRadius: 20, background: 'white', color: 'var(--purple)', border: '1px solid var(--purple)', cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }
+
 
 
 
