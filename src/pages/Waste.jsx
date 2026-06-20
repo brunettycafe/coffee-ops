@@ -3,7 +3,8 @@ import { supabase } from '../supabase.js'
 import { t } from '../App.jsx'
 
 const branches = ['الناصرية', 'النخيل', 'الربوة', 'المطار بلازا', 'الخمسين']
-const units = ['جرام', 'كيلو', 'لتر', 'مل', 'حبة', 'كرتون']
+const unitsAr = ['جرام', 'كيلو', 'لتر', 'مل', 'حبة', 'كرتون']
+const unitsEn = ['Gram', 'Kg', 'Liter', 'ml', 'Piece', 'Carton']
 const todayISO = new Date().toISOString().split('T')[0]
 const emptyForm = { branch: 'الناصرية', item: '', quantity: '', unit: 'جرام', cost: '', notes: '' }
 
@@ -63,7 +64,7 @@ export default function Waste({ user, lang }) {
           </div>
           <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
             <input type="number" placeholder={tr.quantity} value={form.quantity} onChange={e => setForm(p => ({ ...p, quantity: e.target.value }))} style={{ ...inputStyle, flex: 1 }} />
-            <select value={form.unit} onChange={e => setForm(p => ({ ...p, unit: e.target.value }))} style={{ ...inputStyle, flex: 1 }}>{units.map(u => <option key={u}>{u}</option>)}</select>
+            <select value={form.unit} onChange={e => setForm(p => ({ ...p, unit: e.target.value }))} style={{ ...inputStyle, flex: 1 }}>{unitsAr.map((u, i) => <option key={u} value={u}>{lang === 'ar' ? u : unitsEn[i]}</option>)}</select>
             <input type="number" placeholder={tr.cost} value={form.cost} onChange={e => setForm(p => ({ ...p, cost: e.target.value }))} style={{ ...inputStyle, flex: 1 }} />
           </div>
           <input placeholder={tr.notes} value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))} style={{ ...inputStyle, marginBottom: 12 }} />
@@ -100,3 +101,4 @@ export default function Waste({ user, lang }) {
 const solidBtn = { padding: '8px 20px', borderRadius: 20, background: 'var(--purple)', color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }
 const outlineBtn = { padding: '8px 20px', borderRadius: 20, background: 'white', color: 'var(--purple)', border: '1px solid var(--purple)', cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }
 const inputStyle = { width: '100%', padding: '8px 12px', border: '1px solid #ddd', borderRadius: 8, fontFamily: 'Tajawal', fontSize: 14, textAlign: 'right', boxSizing: 'border-box' }
+
