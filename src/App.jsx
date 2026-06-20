@@ -108,11 +108,17 @@ export const t = {
 }
 
 export default function App() {
-  const [user, setUser] = useState(null)
+  const [user, setUser] = useState(() => {
+    try { const s = localStorage.getItem('bronti_user'); return s ? JSON.parse(s) : null } catch { return null }
+  })
   const [page, setPage] = useState('dashboard')
-  const [lang, setLang] = useState('ar')
+  const [lang, setLang] = useState(() => localStorage.getItem('bronti_lang') || 'ar')
 
-  if (!user) return <Login onLogin={setUser} lang={lang} setLang={setLang} />
+  const handleLogin = (u) => { setUser(u); localStorage.setItem('bronti_user', JSON.stringify(u)) }
+  const handleLogout = () => { setUser(null); localStorage.removeItem('bronti_user') }
+  const handleLang = (l) => { setLang(l); localStorage.setItem('bronti_lang', l) }
+
+  if (!user) return <Login onLogin={handleLogin} lang={lang} setLang={handleLang} />
 
   const tr = t[lang]
 
@@ -135,8 +141,8 @@ export default function App() {
       <nav style={{ background: 'var(--purple)', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={{ color: 'var(--gold)', fontWeight: 700, fontSize: 18 }}>BRONTI OS</span>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')} style={{ background: 'rgba(255,255,255,0.15)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }}>{lang === 'ar' ? 'EN' : 'ع'}</button>
-          <button onClick={() => setUser(null)} style={{ background: 'transparent', color: '#ccc', border: '1px solid #ccc', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 12 }}>{tr.logout}</button>
+          <button onClick={() => handleLang(lang === 'ar' ? 'en' : 'ar')} style={{ background: 'rgba(255,255,255,0.15)', color: 'white', border: '1px solid rgba(255,255,255,0.3)', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }}>{lang === 'ar' ? 'EN' : 'ع'}</button>
+          <button onClick={handleLogout} style={{ background: 'transparent', color: '#ccc', border: '1px solid #ccc', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 12 }}>{tr.logout}</button>
         </div>
       </nav>
       <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'var(--purple)', display: 'flex', justifyContent: 'space-around', alignItems: 'center', padding: '6px 0', zIndex: 1000, boxShadow: '0 -2px 12px rgba(0,0,0,0.15)' }}>
@@ -162,6 +168,7 @@ export default function App() {
     </div>
   )
 }
+
 
 
 
