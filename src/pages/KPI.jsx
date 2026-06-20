@@ -20,7 +20,7 @@ export default function KPI({ user, lang }) {
   const [showMetricForm, setShowMetricForm] = useState(false)
   const [editMetric, setEditMetric] = useState(null)
   const [metricForm, setMetricForm] = useState({ name: '', weight: 10 })
-  const isOwner = user.role === 'owner'
+  const isOwner = user.role === 'owner' || user.role === 'مدير تشغيل'
 
   useEffect(() => { fetchAll() }, [])
   useEffect(() => { if (selectedStaff) fetchReviews() }, [selectedPeriod, selectedStaff])
@@ -197,3 +197,4 @@ export default function KPI({ user, lang }) {
 const solidBtn = { padding: '8px 20px', borderRadius: 20, background: 'var(--purple)', color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }
 const outlineBtn = { padding: '8px 20px', borderRadius: 20, background: 'white', color: 'var(--purple)', border: '1px solid var(--purple)', cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }
 const inputStyle = { width: '100%', padding: '8px 12px', border: '1px solid #ddd', borderRadius: 8, fontFamily: 'Tajawal', fontSize: 14, textAlign: 'right', boxSizing: 'border-box' }
+
