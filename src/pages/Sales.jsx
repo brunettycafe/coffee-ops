@@ -13,7 +13,8 @@ export default function Sales({ user, lang }) {
   const [selectedDate, setSelectedDate] = useState(todayISO)
   const [form, setForm] = useState({})
   const [editMode, setEditMode] = useState(false)
-  const isOwner = user.role === 'owner'
+  const isOwner = user.role === 'owner' || user.role === 'مدير تشغيل'
+  const canEdit = isOwner || user.role === 'مدير فرع' || user.role === 'مدير شفت'
   const myBranches = isOwner ? branches : [user.branch]
 
   useEffect(() => { fetchSales() }, [selectedDate])
@@ -51,7 +52,7 @@ export default function Sales({ user, lang }) {
         <h2 style={{ color: 'var(--purple)', fontSize: 22 }}>{tr.salesTitle}</h2>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid #ddd', fontFamily: 'Tajawal', fontSize: 13 }} />
-          {isOwner && !editMode && <button onClick={() => setEditMode(true)} style={solidBtn}>{tr.edit}</button>}
+          {canEdit && !editMode && <button onClick={() => setEditMode(true)} style={solidBtn}>{tr.edit}</button>}
           {editMode && (<><button onClick={saveSales} disabled={saving} style={solidBtn}>{saving ? tr.saving : tr.save}</button><button onClick={() => { setEditMode(false); fetchSales() }} style={outlineBtn}>{tr.cancel}</button></>)}
         </div>
       </div>
@@ -108,3 +109,4 @@ function KPI({ label, value, color }) {
 const solidBtn = { padding: '8px 20px', borderRadius: 20, background: 'var(--purple)', color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }
 const outlineBtn = { padding: '8px 20px', borderRadius: 20, background: 'white', color: 'var(--purple)', border: '1px solid var(--purple)', cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }
 const inputStyle = { width: '100%', padding: '8px 12px', border: '1px solid #ddd', borderRadius: 8, fontFamily: 'Tajawal', fontSize: 14, textAlign: 'right', boxSizing: 'border-box' }
+
