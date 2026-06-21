@@ -9,6 +9,7 @@ import Waste from './pages/Waste.jsx'
 import KPI from './pages/KPI.jsx'
 import Leaderboard from './pages/Leaderboard.jsx'
 import ChangePassword from './pages/ChangePassword.jsx'
+import TasksCompliance from './pages/TasksCompliance.jsx'
 
 export const t = {
   ar: {
@@ -131,6 +132,7 @@ export default function App() {
     { key: 'leaderboard', label: lang === 'ar' ? '🏆 التحفيز' : '🏆 Leaderboard' },
     { key: 'announcements', label: tr.announcements },
     { key: 'changepassword', label: lang === 'ar' ? '🔑 كلمة المرور' : '🔑 Password' },
+    ...(user.role === 'owner' || user.role === 'مدير تشغيل' ? [{ key: 'compliance', label: lang === 'ar' ? '📋 الالتزام' : '📋 Compliance' }] : []),
     ...(user.role === 'owner' ? [{ key: 'admin', label: tr.admin }] : [])
   ]
 
@@ -163,11 +165,13 @@ export default function App() {
         {page === 'announcements' && <Announcements user={user} lang={lang} />}
         {page === 'leaderboard' && <Leaderboard lang={lang} />}
         {page === 'changepassword' && <ChangePassword user={user} lang={lang} />}
+        {page === 'compliance' && <TasksCompliance lang={lang} />}
         {page === 'admin' && user.role === 'owner' && <AdminPanel lang={lang} />}
       </main>
     </div>
   )
 }
+
 
 
 
