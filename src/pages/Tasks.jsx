@@ -246,7 +246,7 @@ export default function Tasks({ user, lang }) {
             <div style={{ textAlign: 'center', color: '#aaa', padding: 40 }}>لا توجد مهام لهذا الشفت</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {myTasks.map(t => (
+              {myOwnTasks.map(t => (
                 <div key={t.id} style={{
                   background: 'white', borderRadius: 12, padding: 16,
                   boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
