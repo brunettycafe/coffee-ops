@@ -143,8 +143,10 @@ export default function Tasks({ user, lang }) {
     return true
   })
 
-  const done = myTasks.filter(t => t.done).length
-  const total = myTasks.length
+  // مهام الموظف الحالي فقط (حسب دوره)
+  const myOwnTasks = isOwner ? myTasks : myTasks.filter(t => !t.roles || t.roles.length === 0 || t.roles.includes(user.role))
+  const done = myOwnTasks.filter(t => t.done).length
+  const total = myOwnTasks.length
 
   function RoleSelector({ form, setForm }) {
     return (
@@ -362,6 +364,7 @@ export default function Tasks({ user, lang }) {
 const inputStyle = { width: '100%', padding: '10px 14px', marginBottom: 10, border: '1px solid #ddd', borderRadius: 8, fontFamily: 'Tajawal', fontSize: 14, textAlign: 'right', display: 'block' }
 const solidBtn = { padding: '8px 20px', borderRadius: 20, background: 'var(--purple)', color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }
 const outlineBtn = { padding: '8px 20px', borderRadius: 20, background: 'white', color: 'var(--purple)', border: '1px solid var(--purple)', cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }
+
 
 
 
