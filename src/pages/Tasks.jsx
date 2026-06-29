@@ -10,13 +10,13 @@ const today = new Date().toLocaleDateString('ar-SA', { weekday: 'long', year: 'n
 const todayISO = new Date().toISOString().split('T')[0]
 
 const daysAr = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت']
-const daysEn = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 
 const emptyTask = { titleAr: '', titleEn: '', branch: 'الناصرية', shift: 'صباحي', roles: [], assignee: '', priority: 'متوسط' }
 const emptyTemplate = { titleAr: '', titleEn: '', branch: 'الكل', shift: 'صباحي', roles: [], priority: 'متوسط', days: [] }
 
 export default function Tasks({ user, lang }) {
   const [tasks, setTasks] = useState([])
+  const [completions, setCompletions] = useState([])
   const [templates, setTemplates] = useState([])
   const [filterBranch, setFilterBranch] = useState('الكل')
   const [filterShift, setFilterShift] = useState('صباحي')
@@ -33,8 +33,19 @@ export default function Tasks({ user, lang }) {
 
   async function fetchTasks() {
     setLoading(true)
-    const { data } = await supabase.from('tasks').select('*').eq('date', todayISO).order('created_at', { ascending: false })
-    setTasks(data || [])
+    const { data: tasksData } = await supabase
+      .from('tasks')
+      .select('*')
+      .eq('date', todayISO)
+      .order('created_at', { ascending: false })
+
+    const { data: completionsData } = await supabase
+      .from('task_completions')
+      .select('task_id, completed_at')
+      .eq('user_id', user.id)
+
+    setTasks(tasksData || [])
+    setCompletions(completionsData || [])
     setLoading(false)
   }
 
@@ -68,8 +79,13 @@ export default function Tasks({ user, lang }) {
     if (templates.length > 0) generateFromTemplates(templates)
   }, [templates])
 
-  async function toggleDone(id, current) {
-    await supabase.from('tasks').update({ done: !current, done_at: !current ? new Date().toISOString() : null }).eq('id', id)
+  async function toggleDone(taskId) {
+    const alreadyDone = completions.some(c => c.task_id === taskId)
+    if (alreadyDone) {
+      await supabase.from('task_completions').delete().eq('task_id', taskId).eq('user_id', user.id)
+    } else {
+      await supabase.from('task_completions').insert([{ task_id: taskId, user_id: user.id }])
+    }
     fetchTasks()
   }
 
@@ -135,6 +151,8 @@ export default function Tasks({ user, lang }) {
     return t.roles.includes(user.role)
   }
 
+  const isTaskDone = (taskId) => completions.some(c => c.task_id === taskId)
+
   const myTasks = tasks.filter(t => {
     if (!isOwner && t.branch !== user.branch) return false
     if (isOwner && filterBranch !== 'الكل' && t.branch !== filterBranch) return false
@@ -143,9 +161,8 @@ export default function Tasks({ user, lang }) {
     return true
   })
 
-  // مهام الموظف الحالي فقط (حسب دوره)
   const myOwnTasks = isOwner ? myTasks : myTasks.filter(t => !t.roles || t.roles.length === 0 || t.roles.includes(user.role))
-  const done = myOwnTasks.filter(t => t.done).length
+  const done = myOwnTasks.filter(t => isTaskDone(t.id)).length
   const total = myOwnTasks.length
 
   function RoleSelector({ form, setForm }) {
@@ -171,7 +188,6 @@ export default function Tasks({ user, lang }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <h2 style={{ color: 'var(--purple)', fontSize: 22 }}>{view === 'tasks' ? '📋 مهام اليوم' : '⚙️ القوالب الثابتة'}</h2>
         <div style={{ display: 'flex', gap: 8 }}>
-          
           {isOwner && <button onClick={() => { setView(v => v === 'tasks' ? 'templates' : 'tasks'); setShowForm(false) }} style={outlineBtn}>{view === 'tasks' ? '⚙️ القوالب' : '📋 المهام'}</button>}
           {isOwner && <button onClick={() => { setShowForm(true); setEditTask(null); setEditTemplate(null); setTaskForm(emptyTask); setTemplateForm(emptyTemplate) }} style={solidBtn}>+ إضافة</button>}
         </div>
@@ -207,7 +223,7 @@ export default function Tasks({ user, lang }) {
 
           <div style={{ background: 'white', borderRadius: 12, padding: 16, marginBottom: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-              <span style={{ fontSize: 14, color: '#666' }}>إنجاز الشفت {filterShift === 'صباحي' ? '🌅' : '🌙'}</span>
+              <span style={{ fontSize: 14, color: '#666' }}>إنجازي {filterShift === 'صباحي' ? '🌅' : '🌙'}</span>
               <span style={{ fontWeight: 700, color: 'var(--purple)' }}>{done}/{total} مهمة</span>
             </div>
             <div style={{ background: '#f0f0f0', borderRadius: 8, height: 10 }}>
@@ -242,44 +258,48 @@ export default function Tasks({ user, lang }) {
 
           {loading ? (
             <div style={{ textAlign: 'center', color: '#aaa', padding: 40 }}>جاري التحميل...</div>
-          ) : myTasks.length === 0 ? (
+          ) : myOwnTasks.length === 0 ? (
             <div style={{ textAlign: 'center', color: '#aaa', padding: 40 }}>لا توجد مهام لهذا الشفت</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {myOwnTasks.map(t => (
-                <div key={t.id} style={{
-                  background: 'white', borderRadius: 12, padding: 16,
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                  opacity: t.done ? 0.65 : 1,
-                  borderRight: `4px solid ${priorityColor[t.priority] || 'var(--gold)'}`
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <input type="checkbox" checked={t.done} onChange={() => canCompleteTask(t) && toggleDone(t.id, t.done)} disabled={!canCompleteTask(t)}
-                      style={{ width: 20, height: 20, cursor: 'pointer', accentColor: 'var(--purple)' }} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 15, fontWeight: 600, textDecoration: t.done ? 'line-through' : 'none', color: t.done ? '#aaa' : '#333' }}>
-                        {lang === 'ar' ? t.title_ar : (t.title_en || t.title_ar)}
+              {myOwnTasks.map(t => {
+                const done = isTaskDone(t.id)
+                const completion = completions.find(c => c.task_id === t.id)
+                return (
+                  <div key={t.id} style={{
+                    background: 'white', borderRadius: 12, padding: 16,
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                    opacity: done ? 0.65 : 1,
+                    borderRight: `4px solid ${priorityColor[t.priority] || 'var(--gold)'}`
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <input type="checkbox" checked={done} onChange={() => canCompleteTask(t) && toggleDone(t.id)} disabled={!canCompleteTask(t)}
+                        style={{ width: 20, height: 20, cursor: 'pointer', accentColor: 'var(--purple)' }} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 15, fontWeight: 600, textDecoration: done ? 'line-through' : 'none', color: done ? '#aaa' : '#333' }}>
+                          {lang === 'ar' ? t.title_ar : (t.title_en || t.title_ar)}
+                        </div>
+                        <div style={{ fontSize: 12, color: '#888', marginTop: 4, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                          <span>📍 {t.branch}</span>
+                          {t.days && t.days.length > 0 && <span>📅 {t.days.join('، ')}</span>}
+                          {(!t.days || t.days.length === 0) && <span>📅 يومي</span>}
+                          <span>{t.shift === 'صباحي' ? '🌅' : '🌙'} {t.shift}</span>
+                          {t.assignee && <span>👤 {t.assignee}</span>}
+                          {t.roles && t.roles.length > 0 && <span>🎯 {t.roles.join('، ')}</span>}
+                          <span style={{ color: priorityColor[t.priority] }}>● {t.priority}</span>
+                          {done && completion && <span>✓ {new Date(completion.completed_at).toLocaleTimeString('ar-SA', {hour: '2-digit', minute:'2-digit'})}</span>}
+                        </div>
                       </div>
-                      <div style={{ fontSize: 12, color: '#888', marginTop: 4, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                        <span>📍 {t.branch}</span>
-                        {t.days && t.days.length > 0 && <span>📅 {t.days.join('، ')}</span>}
-                        {(!t.days || t.days.length === 0) && <span>📅 يومي</span>}
-                        <span>{t.shift === 'صباحي' ? '🌅' : '🌙'} {t.shift}</span>
-                        {t.assignee && <span>👤 {t.assignee}</span>}
-                        {t.roles && t.roles.length > 0 && <span>🎯 {t.roles.join('، ')}</span>}
-                        <span style={{ color: priorityColor[t.priority] }}>● {t.priority}</span>
-                        {t.done_at && <span>✓ {new Date(t.done_at).toLocaleTimeString('ar-SA', {hour: '2-digit', minute:'2-digit'})}</span>}
-                      </div>
+                      {isOwner && (
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button onClick={() => { setEditTask(t); setTaskForm({ titleAr: t.title_ar, titleEn: t.title_en || '', branch: t.branch, shift: t.shift || 'صباحي', roles: t.roles || [], assignee: t.assignee || '', priority: t.priority }); setShowForm(true) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>✏️</button>
+                          <button onClick={() => deleteTask(t.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>🗑️</button>
+                        </div>
+                      )}
                     </div>
-                    {isOwner && (
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <button onClick={() => { setEditTask(t); setTaskForm({ titleAr: t.title_ar, titleEn: t.title_en || '', branch: t.branch, shift: t.shift || 'صباحي', roles: t.roles || [], assignee: t.assignee || '', priority: t.priority }); setShowForm(true) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>✏️</button>
-                        <button onClick={() => deleteTask(t.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>🗑️</button>
-                      </div>
-                    )}
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </>
@@ -295,7 +315,6 @@ export default function Tasks({ user, lang }) {
             <div style={{ background: 'white', borderRadius: 12, padding: 20, marginBottom: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
               <h3 style={{ color: 'var(--purple)', marginBottom: 16 }}>{editTemplate ? 'تعديل القالب' : 'قالب جديد'}</h3>
               <input placeholder="اسم المهمة بالعربي *" value={templateForm.titleAr} onChange={e => setTemplateForm(p => ({...p, titleAr: e.target.value}))} style={inputStyle} />
-
               <input placeholder="Task name in English" value={templateForm.titleEn} onChange={e => setTemplateForm(p => ({...p, titleEn: e.target.value}))} style={inputStyle} />
               <div style={{ display: 'flex', gap: 12 }}>
                 <select value={templateForm.branch} onChange={e => setTemplateForm(p => ({...p, branch: e.target.value}))} style={{...inputStyle, flex: 1}}>
@@ -364,16 +383,3 @@ export default function Tasks({ user, lang }) {
 const inputStyle = { width: '100%', padding: '10px 14px', marginBottom: 10, border: '1px solid #ddd', borderRadius: 8, fontFamily: 'Tajawal', fontSize: 14, textAlign: 'right', display: 'block' }
 const solidBtn = { padding: '8px 20px', borderRadius: 20, background: 'var(--purple)', color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }
 const outlineBtn = { padding: '8px 20px', borderRadius: 20, background: 'white', color: 'var(--purple)', border: '1px solid var(--purple)', cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }
-
-
-
-
-
-
-
-
-
-
-
-
-
