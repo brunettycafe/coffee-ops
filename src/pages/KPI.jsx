@@ -36,8 +36,14 @@ export default function KPI({ user, lang }) {
     setMetrics(data || [])
   }
 
+  // يقرأ جميع الموظفين المعتمدين من users بدل جدول staff المنفصل
   async function fetchStaff() {
-    const { data } = await supabase.from('staff').select('*').order('name')
+    const { data } = await supabase
+      .from('users')
+      .select('id, name, role, branch')
+      .eq('approved', true)
+      .neq('role', 'owner')
+      .order('name')
     setStaff(data || [])
   }
 
@@ -177,7 +183,7 @@ export default function KPI({ user, lang }) {
                   <div key={s.id} style={{ background: 'white', borderRadius: 12, padding: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', borderRight: `4px solid ${score === null ? '#ddd' : score >= 80 ? 'var(--success)' : score >= 60 ? 'var(--gold)' : 'var(--danger)'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
                       <div style={{ fontWeight: 600, fontSize: 15 }}>{s.name}</div>
-                      <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>{s.role}</div>
+                      <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>📍 {s.branch} • {s.role}</div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       {score !== null ? <span style={{ fontWeight: 700, fontSize: 18, color: score >= 80 ? 'var(--success)' : score >= 60 ? 'var(--gold)' : 'var(--danger)' }}>{score}%</span> : <span style={{ fontSize: 12, color: '#bbb' }}>{tr.notRated}</span>}
@@ -197,4 +203,3 @@ export default function KPI({ user, lang }) {
 const solidBtn = { padding: '8px 20px', borderRadius: 20, background: 'var(--purple)', color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }
 const outlineBtn = { padding: '8px 20px', borderRadius: 20, background: 'white', color: 'var(--purple)', border: '1px solid var(--purple)', cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }
 const inputStyle = { width: '100%', padding: '8px 12px', border: '1px solid #ddd', borderRadius: 8, fontFamily: 'Tajawal', fontSize: 14, textAlign: 'right', boxSizing: 'border-box' }
-
