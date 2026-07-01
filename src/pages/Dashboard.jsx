@@ -22,7 +22,7 @@ export default function Dashboard({ user, lang }) {
   const [loading, setLoading] = useState(true)
 
   const periods = [tr.daily, tr.weekly, tr.monthly]
-  const myBranches = user.role === 'owner' ? branches : [user.branch]
+  const myBranches = (user.role === 'owner' || user.role === 'مدير تشغيل') ? branches : [user.branch]
 
   useEffect(() => { setPeriod(tr.daily) }, [lang])
   useEffect(() => { fetchAll() }, [period])
