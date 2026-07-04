@@ -74,7 +74,7 @@ export default function Tasks({ user, lang }) {
       }
     }
     if (toInsert.length === 0) return
-    await supabase.from('tasks').insert(toInsert)
+    await supabase.from('tasks').upsert(toInsert, { onConflict: 'template_id,branch,date', ignoreDuplicates: true })
     fetchTasks()
   }
 
