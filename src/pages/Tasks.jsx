@@ -1,385 +1,205 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabase.js'
+import { t } from '../App.jsx'
 
-const branches = ['الكل', 'الناصرية', 'النخيل', 'الربوة', 'المطار بلازا', 'الخمسين']
-const shifts = ['صباحي', 'مسائي']
-const allRoles = ['مدير فرع', 'مدير شفت', 'باريستا', 'كاشير', 'سايق', 'مدير تشغيل']
-const priorities = ['عالي', 'متوسط', 'منخفض']
-const priorityColor = { 'عالي': 'var(--danger)', 'متوسط': 'var(--gold)', 'منخفض': 'var(--olive)' }
-const today = new Date().toLocaleDateString('ar-SA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
-const todayISO = new Date().toISOString().split('T')[0]
+const periods = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر']
+const periodsEn = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+const currentPeriod = periods[new Date().getMonth()] + ' ' + new Date().getFullYear()
 
-const daysAr = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت']
-
-const emptyTask = { titleAr: '', titleEn: '', branch: 'الناصرية', shift: 'صباحي', roles: [], assignee: '', priority: 'متوسط' }
-const emptyTemplate = { titleAr: '', titleEn: '', branch: 'الكل', shift: 'صباحي', roles: [], priority: 'متوسط', days: [] }
-
-export default function Tasks({ user, lang }) {
-  const [tasks, setTasks] = useState([])
-  const [completions, setCompletions] = useState([])
-  const [templates, setTemplates] = useState([])
-  const [filterBranch, setFilterBranch] = useState('الكل')
-  const [filterShift, setFilterShift] = useState('صباحي')
+export default function KPI({ user, lang }) {
+  const tr = t[lang]
+  const [view, setView] = useState('reviews')
+  const [metrics, setMetrics] = useState([])
+  const [staff, setStaff] = useState([])
+  const [reviews, setReviews] = useState([])
   const [loading, setLoading] = useState(true)
-  const [view, setView] = useState('tasks')
-  const [showForm, setShowForm] = useState(false)
-  const [editTask, setEditTask] = useState(null)
-  const [editTemplate, setEditTemplate] = useState(null)
-  const [taskForm, setTaskForm] = useState(emptyTask)
-  const [templateForm, setTemplateForm] = useState(emptyTemplate)
-  const isOwner = user.role === 'owner'
+  const [selectedPeriod, setSelectedPeriod] = useState(currentPeriod)
+  const [selectedStaff, setSelectedStaff] = useState(null)
+  const [scores, setScores] = useState({})
+  const [saving, setSaving] = useState(false)
+  const [showMetricForm, setShowMetricForm] = useState(false)
+  const [editMetric, setEditMetric] = useState(null)
+  const [metricForm, setMetricForm] = useState({ name: '', weight: 10 })
+  const isOwner = user.role === 'owner' || user.role === 'مدير تشغيل'
 
-  useEffect(() => { fetchTasks(); fetchTemplates() }, [])
+  useEffect(() => { fetchAll() }, [])
+  useEffect(() => { if (selectedStaff) fetchReviews() }, [selectedPeriod, selectedStaff])
 
-  async function fetchTasks() {
+  async function fetchAll() {
     setLoading(true)
-    const { data: tasksData } = await supabase
-      .from('tasks')
-      .select('*')
-      .eq('date', todayISO)
-      .order('created_at', { ascending: false })
-
-    const { data: completionsData } = await supabase
-      .from('task_completions')
-      .select('task_id, completed_at')
-      .eq('user_id', user.id)
-
-    setTasks(tasksData || [])
-    setCompletions(completionsData || [])
+    await Promise.all([fetchMetrics(), fetchStaff(), fetchReviews()])
     setLoading(false)
   }
 
-  async function fetchTemplates() {
-    const { data } = await supabase.from('task_templates').select('*').order('created_at', { ascending: false })
-    setTemplates(data || [])
+  async function fetchMetrics() {
+    const { data } = await supabase.from('kpi_metrics').select('*').eq('active', true).order('created_at')
+    setMetrics(data || [])
   }
 
-  async function generateFromTemplates(tmpl) {
-    const todayDayIndex = new Date().getDay()
-    const todayDayAr = daysAr[todayDayIndex]
-    const allBranches = ['الناصرية', 'النخيل', 'الربوة', 'المطار بلازا', 'الخمسين']
-    const { data: existing } = await supabase.from('tasks').select('template_id, branch').eq('date', todayISO)
-    const toInsert = []
-    for (const t of tmpl) {
-      const targetBranches = t.branch === 'الكل' ? allBranches : [t.branch]
-      for (const branch of targetBranches) {
-        if (t.days && t.days.length > 0 && !t.days.includes(todayDayAr)) continue
-        const alreadyExists = (existing || []).some(e => e.template_id === t.id && e.branch === branch)
-        if (!alreadyExists) {
-          toInsert.push({ title_ar: t.title_ar, title_en: t.title_en, branch, shift: t.shift, roles: t.roles, priority: t.priority, done: false, date: todayISO, template_id: t.id })
-        }
-      }
+  // يقرأ جميع الموظفين المعتمدين من users بدل جدول staff المنفصل
+  async function fetchStaff() {
+    const { data } = await supabase
+      .from('users')
+      .select('id, name, role, branch')
+      .eq('approved', true)
+      .neq('role', 'owner')
+      .order('name')
+    setStaff(data || [])
+  }
+
+  async function fetchReviews() {
+    const { data } = await supabase.from('kpi_reviews').select('*').eq('period', selectedPeriod)
+    setReviews(data || [])
+  }
+
+  async function saveMetric() {
+    if (!metricForm.name) return
+    if (editMetric) { await supabase.from('kpi_metrics').update({ name: metricForm.name, weight: parseFloat(metricForm.weight) }).eq('id', editMetric.id) }
+    else { await supabase.from('kpi_metrics').insert([{ name: metricForm.name, weight: parseFloat(metricForm.weight) }]) }
+    setMetricForm({ name: '', weight: 10 }); setEditMetric(null); setShowMetricForm(false); fetchMetrics()
+  }
+
+  async function deleteMetric(id) {
+    if (!window.confirm(lang === 'ar' ? 'حذف هذا البند؟' : 'Delete this metric?')) return
+    await supabase.from('kpi_metrics').update({ active: false }).eq('id', id); fetchMetrics()
+  }
+
+  async function saveReview() {
+    if (!selectedStaff) return
+    setSaving(true)
+    for (const metric of metrics) {
+      const score = parseFloat(scores[metric.id]) || 0
+      const existing = reviews.find(r => r.staff_id === selectedStaff && r.metric_id === metric.id)
+      if (existing) { await supabase.from('kpi_reviews').update({ score, reviewer: user.name || user.email }).eq('id', existing.id) }
+      else { await supabase.from('kpi_reviews').insert([{ staff_id: selectedStaff, metric_id: metric.id, score, period: selectedPeriod, reviewer: user.name || user.email }]) }
     }
-    if (toInsert.length === 0) return
-    await supabase.from('tasks').insert(toInsert)
-    fetchTasks()
+    setSaving(false); setSelectedStaff(null); setScores({}); fetchReviews()
   }
 
-  useEffect(() => {
-    if (templates.length > 0) generateFromTemplates(templates)
-  }, [templates])
-
-  async function toggleDone(taskId) {
-    const alreadyDone = completions.some(c => c.task_id === taskId)
-    if (alreadyDone) {
-      await supabase.from('task_completions').delete().eq('task_id', taskId).eq('user_id', user.id)
-    } else {
-      await supabase.from('task_completions').insert([{ task_id: taskId, user_id: user.id }])
-    }
-    fetchTasks()
+  function openReview(staffId) {
+    setSelectedStaff(staffId)
+    const existing = {}
+    reviews.filter(r => r.staff_id === staffId).forEach(r => { existing[r.metric_id] = r.score })
+    setScores(existing)
   }
 
-  async function deleteTask(id) {
-    if (!window.confirm('حذف هذه المهمة؟')) return
-    await supabase.from('tasks').delete().eq('id', id)
-    fetchTasks()
+  function getStaffScore(staffId) {
+    const staffReviews = reviews.filter(r => r.staff_id === staffId)
+    if (staffReviews.length === 0) return null
+    const totalWeight = metrics.reduce((s, m) => s + m.weight, 0)
+    const weighted = metrics.reduce((s, m) => { const r = staffReviews.find(r => r.metric_id === m.id); return s + (r ? r.score * m.weight : 0) }, 0)
+    return totalWeight > 0 ? Math.round(weighted / totalWeight) : 0
   }
 
-  async function saveTask() {
-    if (!taskForm.titleAr) return
-    if (editTask) {
-      await supabase.from('tasks').update({
-        title_ar: taskForm.titleAr, title_en: taskForm.titleEn,
-        branch: taskForm.branch, shift: taskForm.shift,
-        roles: taskForm.roles, assignee: taskForm.assignee, priority: taskForm.priority
-      }).eq('id', editTask.id)
-    } else {
-      await supabase.from('tasks').insert([{
-        title_ar: taskForm.titleAr, title_en: taskForm.titleEn,
-        branch: taskForm.branch, shift: taskForm.shift,
-        roles: taskForm.roles, assignee: taskForm.assignee,
-        priority: taskForm.priority, done: false, date: todayISO
-      }])
-    }
-    setTaskForm(emptyTask); setEditTask(null); setShowForm(false); fetchTasks()
-  }
+  const totalWeight = metrics.reduce((s, m) => s + m.weight, 0)
+  const currentPeriods = lang === 'ar' ? periods : periodsEn
+  const year = new Date().getFullYear()
 
-  async function saveTemplate() {
-    if (!templateForm.titleAr) return
-    if (editTemplate) {
-      await supabase.from('task_templates').update({
-        title_ar: templateForm.titleAr, title_en: templateForm.titleEn,
-        branch: templateForm.branch, shift: templateForm.shift,
-        roles: templateForm.roles, priority: templateForm.priority,
-        days: templateForm.days
-      }).eq('id', editTemplate.id)
-    } else {
-      await supabase.from('task_templates').insert([{
-        title_ar: templateForm.titleAr, title_en: templateForm.titleEn,
-        branch: templateForm.branch, shift: templateForm.shift,
-        roles: templateForm.roles, priority: templateForm.priority,
-        days: templateForm.days
-      }])
-    }
-    setTemplateForm(emptyTemplate); setEditTemplate(null); setShowForm(false); fetchTemplates()
-  }
-
-  async function deleteTemplate(id) {
-    if (!window.confirm('حذف هذا القالب؟')) return
-    await supabase.from('task_templates').delete().eq('id', id)
-    fetchTemplates()
-  }
-
-  function toggleRole(role, form, setForm) {
-    setForm(p => ({ ...p, roles: p.roles.includes(role) ? p.roles.filter(r => r !== role) : [...p.roles, role] }))
-  }
-
-  const isBranchManager = user.role === 'مدير فرع' || user.role === 'مدير تشغيل'
-  const canCompleteTask = (t) => {
-    if (isOwner) return true
-    if (!t.roles || t.roles.length === 0) return true
-    return t.roles.includes(user.role)
-  }
-
-  const isTaskDone = (taskId) => completions.some(c => c.task_id === taskId)
-
-  const myTasks = tasks.filter(t => {
-    if (!isOwner && t.branch !== user.branch) return false
-    if (isOwner && filterBranch !== 'الكل' && t.branch !== filterBranch) return false
-    if (t.shift !== filterShift) return false
-    if (!isOwner && !isBranchManager && t.roles && t.roles.length > 0 && !t.roles.includes(user.role)) return false
-    return true
-  })
-
-  const myOwnTasks = isOwner ? myTasks : myTasks.filter(t => !t.roles || t.roles.length === 0 || t.roles.includes(user.role))
-  const done = myOwnTasks.filter(t => isTaskDone(t.id)).length
-  const total = myOwnTasks.length
-
-  function RoleSelector({ form, setForm }) {
-    return (
-      <div style={{ marginBottom: 12 }}>
-        <div style={{ fontSize: 13, color: '#666', marginBottom: 8 }}>الأدوار (اختر واحد أو أكثر):</div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {allRoles.map(r => (
-            <button key={r} onClick={() => toggleRole(r, form, setForm)} style={{
-              padding: '4px 12px', borderRadius: 16, fontSize: 12,
-              cursor: 'pointer', fontFamily: 'Tajawal', border: 'none',
-              background: form.roles.includes(r) ? 'var(--purple)' : '#f0f0f0',
-              color: form.roles.includes(r) ? 'white' : '#666'
-            }}>{r}</button>
-          ))}
-        </div>
-      </div>
-    )
-  }
+  if (loading) return <div style={{ textAlign: 'center', color: '#aaa', padding: 60 }}>{tr.loading}</div>
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-        <h2 style={{ color: 'var(--purple)', fontSize: 22 }}>{view === 'tasks' ? '📋 مهام اليوم' : '⚙️ القوالب الثابتة'}</h2>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {isOwner && <button onClick={() => { setView(v => v === 'tasks' ? 'templates' : 'tasks'); setShowForm(false) }} style={outlineBtn}>{view === 'tasks' ? '⚙️ القوالب' : '📋 المهام'}</button>}
-          {isOwner && <button onClick={() => { setShowForm(true); setEditTask(null); setEditTemplate(null); setTaskForm(emptyTask); setTemplateForm(emptyTemplate) }} style={solidBtn}>+ إضافة</button>}
-        </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <h2 style={{ color: 'var(--purple)', fontSize: 22 }}>{tr.kpiTitle}</h2>
+        {isOwner && <button onClick={() => { setView(v => v === 'reviews' ? 'metrics' : 'reviews'); setShowMetricForm(false) }} style={outlineBtn}>{view === 'reviews' ? tr.metrics : tr.reviews}</button>}
       </div>
 
-      <div style={{ color: 'var(--gold)', fontSize: 13, marginBottom: 16 }}>📅 {today}</div>
-
-      {view === 'tasks' && (
-        <>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-            {shifts.map(s => (
-              <button key={s} onClick={() => setFilterShift(s)} style={{
-                padding: '8px 20px', borderRadius: 20, fontFamily: 'Tajawal', fontSize: 14, cursor: 'pointer',
-                background: filterShift === s ? 'var(--purple)' : 'white',
-                color: filterShift === s ? 'white' : 'var(--purple)',
-                border: '2px solid var(--purple)', fontWeight: filterShift === s ? 700 : 400
-              }}>{s === 'صباحي' ? '🌅 صباحي' : '🌙 مسائي'}</button>
+      {view === 'metrics' && isOwner && (
+        <div>
+          <div style={{ background: '#fff8e1', borderRadius: 10, padding: 12, marginBottom: 16, fontSize: 13, color: '#f57c00', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>⚠️ {tr.weightWarning} <strong>{totalWeight}%</strong> {totalWeight !== 100 ? tr.preferHundred : '✅'}</span>
+            <button onClick={() => { setShowMetricForm(true); setEditMetric(null); setMetricForm({ name: '', weight: 10 }) }} style={solidBtn}>{tr.addMetric}</button>
+          </div>
+          {showMetricForm && (
+            <div style={{ background: 'white', borderRadius: 12, padding: 20, marginBottom: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+              <h3 style={{ color: 'var(--purple)', marginBottom: 12 }}>{editMetric ? tr.editTemplate : tr.addMetric}</h3>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <input placeholder={tr.metricName} value={metricForm.name} onChange={e => setMetricForm(p => ({ ...p, name: e.target.value }))} style={{ ...inputStyle, flex: 3 }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 12, color: '#888', marginBottom: 4 }}>{tr.weight}</div>
+                  <input type="number" min="1" max="100" value={metricForm.weight} onChange={e => setMetricForm(p => ({ ...p, weight: e.target.value }))} style={inputStyle} />
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                <button onClick={saveMetric} style={solidBtn}>{lang === 'ar' ? 'حفظ' : 'Save'}</button>
+                <button onClick={() => { setShowMetricForm(false); setEditMetric(null) }} style={outlineBtn}>{tr.cancel}</button>
+              </div>
+            </div>
+          )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {metrics.map(m => (
+              <div key={m.id} style={{ background: 'white', borderRadius: 12, padding: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div><div style={{ fontWeight: 600, fontSize: 15 }}>{m.name}</div><div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>{tr.weight.replace(' (%)', '')}: {m.weight}%</div></div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={() => { setEditMetric(m); setMetricForm({ name: m.name, weight: m.weight }); setShowMetricForm(true) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>✏️</button>
+                  <button onClick={() => deleteMetric(m.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>🗑️</button>
+                </div>
+              </div>
             ))}
           </div>
+        </div>
+      )}
 
-          {isOwner && (
-            <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-              {branches.map(b => (
-                <button key={b} onClick={() => setFilterBranch(b)} style={{
-                  padding: '5px 12px', borderRadius: 16, fontFamily: 'Tajawal', fontSize: 12, cursor: 'pointer',
-                  background: filterBranch === b ? 'var(--gold)' : 'white',
-                  color: filterBranch === b ? 'white' : 'var(--gold)',
-                  border: '1px solid var(--gold)'
-                }}>{b}</button>
-              ))}
-            </div>
-          )}
-
-          <div style={{ background: 'white', borderRadius: 12, padding: 16, marginBottom: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-              <span style={{ fontSize: 14, color: '#666' }}>إنجازي {filterShift === 'صباحي' ? '🌅' : '🌙'}</span>
-              <span style={{ fontWeight: 700, color: 'var(--purple)' }}>{done}/{total} مهمة</span>
-            </div>
-            <div style={{ background: '#f0f0f0', borderRadius: 8, height: 10 }}>
-              <div style={{ width: total > 0 ? `${Math.round(done/total*100)}%` : '0%', height: '100%', background: 'var(--success)', borderRadius: 8, transition: 'width 0.5s' }} />
-            </div>
+      {view === 'reviews' && (
+        <div>
+          <div style={{ marginBottom: 20 }}>
+            <select value={selectedPeriod} onChange={e => setSelectedPeriod(e.target.value)} style={{ ...inputStyle, width: 'auto', display: 'inline-block' }}>
+              {currentPeriods.map((p, i) => <option key={p} value={periods[i] + ' ' + year}>{p} {year}</option>)}
+            </select>
           </div>
-
-          {showForm && isOwner && (
-            <div style={{ background: 'white', borderRadius: 12, padding: 20, marginBottom: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-              <h3 style={{ color: 'var(--purple)', marginBottom: 16 }}>{editTask ? 'تعديل المهمة' : 'مهمة جديدة'}</h3>
-              <input placeholder="اسم المهمة بالعربي *" value={taskForm.titleAr} onChange={e => setTaskForm(p => ({...p, titleAr: e.target.value}))} style={inputStyle} />
-              <input placeholder="Task name in English" value={taskForm.titleEn} onChange={e => setTaskForm(p => ({...p, titleEn: e.target.value}))} style={inputStyle} />
-              <div style={{ display: 'flex', gap: 12 }}>
-                <select value={taskForm.branch} onChange={e => setTaskForm(p => ({...p, branch: e.target.value}))} style={{...inputStyle, flex: 1}}>
-                  {['الكل', 'الناصرية', 'النخيل', 'الربوة', 'المطار بلازا', 'الخمسين'].map(b => <option key={b}>{b}</option>)}
-                </select>
-                <select value={taskForm.shift} onChange={e => setTaskForm(p => ({...p, shift: e.target.value}))} style={{...inputStyle, flex: 1}}>
-                  {shifts.map(s => <option key={s}>{s}</option>)}
-                </select>
-                <select value={taskForm.priority} onChange={e => setTaskForm(p => ({...p, priority: e.target.value}))} style={{...inputStyle, flex: 1}}>
-                  {priorities.map(p => <option key={p}>{p}</option>)}
-                </select>
+          {metrics.length === 0 ? (
+            <div style={{ textAlign: 'center', color: '#aaa', padding: 40 }}>{tr.noMetrics}</div>
+          ) : selectedStaff ? (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <h3 style={{ color: 'var(--purple)' }}>{lang === 'ar' ? 'تقييم' : 'Review'}: {staff.find(s => s.id === selectedStaff)?.name}</h3>
+                <button onClick={() => { setSelectedStaff(null); setScores({}) }} style={outlineBtn}>{tr.back}</button>
               </div>
-              <RoleSelector form={taskForm} setForm={setTaskForm} />
-              <input placeholder="المسؤول (اختياري)" value={taskForm.assignee} onChange={e => setTaskForm(p => ({...p, assignee: e.target.value}))} style={inputStyle} />
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={saveTask} style={solidBtn}>حفظ</button>
-                <button onClick={() => { setShowForm(false); setEditTask(null) }} style={outlineBtn}>إلغاء</button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
+                {metrics.map(m => (
+                  <div key={m.id} style={{ background: 'white', borderRadius: 12, padding: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <span style={{ fontWeight: 600 }}>{m.name}</span>
+                      <span style={{ fontSize: 12, color: '#888' }}>{tr.weight.replace(' (%)', '')}: {m.weight}%</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <input type="range" min="0" max="100" value={scores[m.id] || 0} onChange={e => setScores(s => ({ ...s, [m.id]: e.target.value }))} style={{ flex: 1, accentColor: 'var(--purple)' }} />
+                      <span style={{ fontWeight: 700, color: 'var(--purple)', minWidth: 40, textAlign: 'center' }}>{scores[m.id] || 0}%</span>
+                    </div>
+                  </div>
+                ))}
               </div>
+              <div style={{ background: 'white', borderRadius: 12, padding: 16, marginBottom: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ fontWeight: 600 }}>{tr.expectedResult}</span>
+                <span style={{ fontWeight: 700, fontSize: 20, color: 'var(--purple)' }}>{Math.round(metrics.reduce((s, m) => s + ((parseFloat(scores[m.id]) || 0) * m.weight), 0) / (totalWeight || 1))}%</span>
+              </div>
+              <button onClick={saveReview} disabled={saving} style={solidBtn}>{saving ? tr.saving : tr.saveReview}</button>
             </div>
-          )}
-
-          {loading ? (
-            <div style={{ textAlign: 'center', color: '#aaa', padding: 40 }}>جاري التحميل...</div>
-          ) : myOwnTasks.length === 0 ? (
-            <div style={{ textAlign: 'center', color: '#aaa', padding: 40 }}>لا توجد مهام لهذا الشفت</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {myOwnTasks.map(t => {
-                const done = isTaskDone(t.id)
-                const completion = completions.find(c => c.task_id === t.id)
+              {staff.length === 0 ? <div style={{ textAlign: 'center', color: '#aaa', padding: 40 }}>{tr.noStaff}</div> : staff.map(s => {
+                const score = getStaffScore(s.id)
                 return (
-                  <div key={t.id} style={{
-                    background: 'white', borderRadius: 12, padding: 16,
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                    opacity: done ? 0.65 : 1,
-                    borderRight: `4px solid ${priorityColor[t.priority] || 'var(--gold)'}`
-                  }}>
+                  <div key={s.id} style={{ background: 'white', borderRadius: 12, padding: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.08)', borderRight: `4px solid ${score === null ? '#ddd' : score >= 80 ? 'var(--success)' : score >= 60 ? 'var(--gold)' : 'var(--danger)'}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 15 }}>{s.name}</div>
+                      <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>📍 {s.branch} • {s.role}</div>
+                    </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <input type="checkbox" checked={done} onChange={() => canCompleteTask(t) && toggleDone(t.id)} disabled={!canCompleteTask(t)}
-                        style={{ width: 20, height: 20, cursor: 'pointer', accentColor: 'var(--purple)' }} />
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 15, fontWeight: 600, textDecoration: done ? 'line-through' : 'none', color: done ? '#aaa' : '#333' }}>
-                          {lang === 'ar' ? t.title_ar : (t.title_en || t.title_ar)}
-                        </div>
-                        <div style={{ fontSize: 12, color: '#888', marginTop: 4, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                          <span>📍 {t.branch}</span>
-                          {t.days && t.days.length > 0 && <span>📅 {t.days.join('، ')}</span>}
-                          {(!t.days || t.days.length === 0) && <span>📅 يومي</span>}
-                          <span>{t.shift === 'صباحي' ? '🌅' : '🌙'} {t.shift}</span>
-                          {t.assignee && <span>👤 {t.assignee}</span>}
-                          {t.roles && t.roles.length > 0 && <span>🎯 {t.roles.join('، ')}</span>}
-                          <span style={{ color: priorityColor[t.priority] }}>● {t.priority}</span>
-                          {done && completion && <span>✓ {new Date(completion.completed_at).toLocaleTimeString('ar-SA', {hour: '2-digit', minute:'2-digit'})}</span>}
-                        </div>
-                      </div>
-                      {isOwner && (
-                        <div style={{ display: 'flex', gap: 6 }}>
-                          <button onClick={() => { setEditTask(t); setTaskForm({ titleAr: t.title_ar, titleEn: t.title_en || '', branch: t.branch, shift: t.shift || 'صباحي', roles: t.roles || [], assignee: t.assignee || '', priority: t.priority }); setShowForm(true) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>✏️</button>
-                          <button onClick={() => deleteTask(t.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>🗑️</button>
-                        </div>
-                      )}
+                      {score !== null ? <span style={{ fontWeight: 700, fontSize: 18, color: score >= 80 ? 'var(--success)' : score >= 60 ? 'var(--gold)' : 'var(--danger)' }}>{score}%</span> : <span style={{ fontSize: 12, color: '#bbb' }}>{tr.notRated}</span>}
+                      {isOwner && <button onClick={() => openReview(s.id)} style={solidBtn}>{tr.rate}</button>}
                     </div>
                   </div>
                 )
               })}
             </div>
           )}
-        </>
-      )}
-
-      {view === 'templates' && isOwner && (
-        <>
-          <div style={{ background: '#fff8e1', borderRadius: 10, padding: 12, marginBottom: 16, fontSize: 13, color: '#f57c00' }}>
-            ⚙️ القوالب هي المهام الثابتة التي تتولد تلقائياً كل يوم
-          </div>
-
-          {showForm && (
-            <div style={{ background: 'white', borderRadius: 12, padding: 20, marginBottom: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-              <h3 style={{ color: 'var(--purple)', marginBottom: 16 }}>{editTemplate ? 'تعديل القالب' : 'قالب جديد'}</h3>
-              <input placeholder="اسم المهمة بالعربي *" value={templateForm.titleAr} onChange={e => setTemplateForm(p => ({...p, titleAr: e.target.value}))} style={inputStyle} />
-              <input placeholder="Task name in English" value={templateForm.titleEn} onChange={e => setTemplateForm(p => ({...p, titleEn: e.target.value}))} style={inputStyle} />
-              <div style={{ display: 'flex', gap: 12 }}>
-                <select value={templateForm.branch} onChange={e => setTemplateForm(p => ({...p, branch: e.target.value}))} style={{...inputStyle, flex: 1}}>
-                  {branches.map(b => <option key={b}>{b}</option>)}
-                </select>
-                <select value={templateForm.shift} onChange={e => setTemplateForm(p => ({...p, shift: e.target.value}))} style={{...inputStyle, flex: 1}}>
-                  {shifts.map(s => <option key={s}>{s}</option>)}
-                </select>
-                <select value={templateForm.priority} onChange={e => setTemplateForm(p => ({...p, priority: e.target.value}))} style={{...inputStyle, flex: 1}}>
-                  {priorities.map(p => <option key={p}>{p}</option>)}
-                </select>
-              </div>
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: 13, color: '#666', marginBottom: 6 }}>أيام التكرار (فاضي = يومي):</div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {daysAr.map(d => (
-                    <button key={d} onClick={() => setTemplateForm(p => ({ ...p, days: p.days.includes(d) ? p.days.filter(x => x !== d) : [...p.days, d] }))} style={{ padding: '4px 10px', borderRadius: 16, fontSize: 12, cursor: 'pointer', fontFamily: 'Tajawal', border: 'none', background: templateForm.days.includes(d) ? 'var(--purple)' : '#f0f0f0', color: templateForm.days.includes(d) ? 'white' : '#666' }}>{d}</button>
-                  ))}
-                </div>
-                {templateForm.days.length === 0 && <div style={{ fontSize: 11, color: '#aaa', marginTop: 4 }}>يومي (كل الأيام)</div>}
-              </div>
-              <RoleSelector form={templateForm} setForm={setTemplateForm} />
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={saveTemplate} style={solidBtn}>حفظ القالب</button>
-                <button onClick={() => { setShowForm(false); setEditTemplate(null) }} style={outlineBtn}>إلغاء</button>
-              </div>
-            </div>
-          )}
-
-          {templates.length === 0 ? (
-            <div style={{ textAlign: 'center', color: '#aaa', padding: 40 }}>لا توجد قوالب بعد — أضف أول مهمة ثابتة</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {templates.map(t => (
-                <div key={t.id} style={{
-                  background: 'white', borderRadius: 12, padding: 16,
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                  borderRight: `4px solid ${priorityColor[t.priority] || 'var(--gold)'}`
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 15, fontWeight: 600, color: '#333', marginBottom: 6 }}>{t.title_ar}</div>
-                      {t.title_en && <div style={{ fontSize: 13, color: '#888', marginBottom: 6 }}>{t.title_en}</div>}
-                      <div style={{ fontSize: 12, color: '#888', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                        <span>📍 {t.branch}</span>
-                        <span>{t.shift === 'صباحي' ? '🌅' : '🌙'} {t.shift}</span>
-                        {t.roles && t.roles.length > 0 && <span>🎯 {t.roles.join('، ')}</span>}
-                        <span style={{ color: priorityColor[t.priority] }}>● {t.priority}</span>
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <button onClick={() => { setEditTemplate(t); setTemplateForm({ titleAr: t.title_ar, titleEn: t.title_en || '', branch: t.branch, shift: t.shift, roles: t.roles || [], priority: t.priority, days: t.days || [] }); setShowForm(true) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>✏️</button>
-                      <button onClick={() => deleteTemplate(t.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>🗑️</button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </>
+        </div>
       )}
     </div>
   )
 }
 
-const inputStyle = { width: '100%', padding: '10px 14px', marginBottom: 10, border: '1px solid #ddd', borderRadius: 8, fontFamily: 'Tajawal', fontSize: 14, textAlign: 'right', display: 'block' }
 const solidBtn = { padding: '8px 20px', borderRadius: 20, background: 'var(--purple)', color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }
 const outlineBtn = { padding: '8px 20px', borderRadius: 20, background: 'white', color: 'var(--purple)', border: '1px solid var(--purple)', cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }
+const inputStyle = { width: '100%', padding: '8px 12px', border: '1px solid #ddd', borderRadius: 8, fontFamily: 'Tajawal', fontSize: 14, textAlign: 'right', boxSizing: 'border-box' }
