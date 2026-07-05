@@ -18,6 +18,7 @@ export default function Waste({ user, lang }) {
   const [selectedDate, setSelectedDate] = useState(todayISO)
   const [filterBranch, setFilterBranch] = useState('الكل')
   const isOwner = user.role === 'owner' || user.role === 'مدير تشغيل'
+  const canDelete = user.role === 'owner'
 
   useEffect(() => { fetchLogs() }, [selectedDate])
 
@@ -88,7 +89,7 @@ export default function Waste({ user, lang }) {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <span style={{ fontWeight: 700, color: 'var(--danger)', fontSize: 16 }}>{l.cost.toLocaleString()} {SAR}</span>
-                {isOwner && <button onClick={() => deleteLog(l.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>🗑️</button>}
+                {canDelete && <button onClick={() => deleteLog(l.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>🗑️</button>}
               </div>
             </div>
           ))}
