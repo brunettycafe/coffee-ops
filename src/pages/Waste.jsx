@@ -17,7 +17,7 @@ export default function Waste({ user, lang }) {
   const [saving, setSaving] = useState(false)
   const [selectedDate, setSelectedDate] = useState(todayISO)
   const [filterBranch, setFilterBranch] = useState('الكل')
-  const isOwner = user.role === 'owner'
+  const isOwner = user.role === 'owner' || user.role === 'مدير تشغيل'
 
   useEffect(() => { fetchLogs() }, [selectedDate])
 
@@ -101,4 +101,3 @@ export default function Waste({ user, lang }) {
 const solidBtn = { padding: '8px 20px', borderRadius: 20, background: 'var(--purple)', color: 'white', border: 'none', cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }
 const outlineBtn = { padding: '8px 20px', borderRadius: 20, background: 'white', color: 'var(--purple)', border: '1px solid var(--purple)', cursor: 'pointer', fontFamily: 'Tajawal', fontSize: 13 }
 const inputStyle = { width: '100%', padding: '8px 12px', border: '1px solid #ddd', borderRadius: 8, fontFamily: 'Tajawal', fontSize: 14, textAlign: 'right', boxSizing: 'border-box' }
-
