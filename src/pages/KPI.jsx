@@ -67,13 +67,25 @@ export default function KPI({ user, lang }) {
   async function saveReview() {
     if (!selectedStaff) return
     setSaving(true)
+    let firstError = null
     for (const metric of metrics) {
       const score = parseFloat(scores[metric.id]) || 0
       const existing = reviews.find(r => r.staff_id === selectedStaff && r.metric_id === metric.id)
-      if (existing) { await supabase.from('kpi_reviews').update({ score, reviewer: user.name || user.email }).eq('id', existing.id) }
-      else { await supabase.from('kpi_reviews').insert([{ staff_id: selectedStaff, metric_id: metric.id, score, period: selectedPeriod, reviewer: user.name || user.email }]) }
+      let error
+      if (existing) {
+        ({ error } = await supabase.from('kpi_reviews').update({ score, reviewer: user.name || user.email }).eq('id', existing.id))
+      } else {
+        ({ error } = await supabase.from('kpi_reviews').insert([{ staff_id: selectedStaff, metric_id: metric.id, score, period: selectedPeriod, reviewer: user.name || user.email }]))
+      }
+      if (error && !firstError) firstError = error
     }
-    setSaving(false); setSelectedStaff(null); setScores({}); fetchReviews()
+    setSaving(false)
+    if (firstError) {
+      alert((lang === 'ar' ? 'فشل الحفظ: ' : 'Save failed: ') + firstError.message)
+      return
+    }
+    setSelectedStaff(null); setScores({}); fetchReviews()
+    alert(lang === 'ar' ? 'تم حفظ التقييم ✅' : 'Review saved ✅')
   }
 
   function openReview(staffId) {
