@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import Login from './pages/Login.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import Alerts from './pages/Alerts.jsx'
+import Tour from './pages/Tour.jsx'
 import Tasks from './pages/Tasks.jsx'
 import Announcements from './pages/Announcements.jsx'
 import AdminPanel from './pages/AdminPanel.jsx'
@@ -272,13 +273,17 @@ export default function App() {
   })
 
   const [page, setPage] = useState('dashboard')
+
   const [lang, setLang] = useState(
     () => localStorage.getItem('bronti_lang') || 'ar'
   )
 
-  const handleLogin = (loggedInUser) => {
+  const handleLogin = loggedInUser => {
     setUser(loggedInUser)
-    localStorage.setItem('bronti_user', JSON.stringify(loggedInUser))
+    localStorage.setItem(
+      'bronti_user',
+      JSON.stringify(loggedInUser)
+    )
   }
 
   const handleLogout = () => {
@@ -286,9 +291,12 @@ export default function App() {
     localStorage.removeItem('bronti_user')
   }
 
-  const handleLang = (selectedLanguage) => {
+  const handleLang = selectedLanguage => {
     setLang(selectedLanguage)
-    localStorage.setItem('bronti_lang', selectedLanguage)
+    localStorage.setItem(
+      'bronti_lang',
+      selectedLanguage
+    )
   }
 
   if (!user) {
@@ -306,6 +314,10 @@ export default function App() {
   const navItems = [
     { key: 'dashboard', label: tr.dashboard },
     { key: 'alerts', label: tr.alerts },
+    {
+      key: 'tour',
+      label: lang === 'ar' ? 'الجولة' : 'Tour'
+    },
     { key: 'sales', label: tr.sales },
     { key: 'waste', label: tr.waste },
     { key: 'tasks', label: tr.tasks },
@@ -324,16 +336,27 @@ export default function App() {
       label: lang === 'ar' ? 'كلمة المرور' : 'Password'
     },
     ...(
-      user.role === 'owner' || user.role === 'مدير تشغيل'
-        ? [{
-            key: 'compliance',
-            label: lang === 'ar' ? 'الالتزام' : 'Compliance'
-          }]
+      user.role === 'owner' ||
+      user.role === 'مدير تشغيل'
+        ? [
+            {
+              key: 'compliance',
+              label:
+                lang === 'ar'
+                  ? 'الالتزام'
+                  : 'Compliance'
+            }
+          ]
         : []
     ),
     ...(
       user.role === 'owner'
-        ? [{ key: 'admin', label: tr.admin }]
+        ? [
+            {
+              key: 'admin',
+              label: tr.admin
+            }
+          ]
         : []
     )
   ]
@@ -341,6 +364,7 @@ export default function App() {
   const navIcons = {
     dashboard: '🏠',
     alerts: '🚨',
+    tour: '🚶',
     sales: '💰',
     waste: '🗑️',
     tasks: '✅',
@@ -389,11 +413,14 @@ export default function App() {
           }}
         >
           <button
-            onClick={() => handleLang(lang === 'ar' ? 'en' : 'ar')}
+            onClick={() =>
+              handleLang(lang === 'ar' ? 'en' : 'ar')
+            }
             style={{
               background: 'rgba(255,255,255,0.15)',
               color: 'white',
-              border: '1px solid rgba(255,255,255,0.3)',
+              border:
+                '1px solid rgba(255,255,255,0.3)',
               padding: '6px 12px',
               borderRadius: 8,
               cursor: 'pointer',
@@ -435,7 +462,8 @@ export default function App() {
           padding: '6px 4px',
           overflowX: 'auto',
           zIndex: 1000,
-          boxShadow: '0 -2px 12px rgba(0,0,0,0.15)'
+          boxShadow:
+            '0 -2px 12px rgba(0,0,0,0.15)'
         }}
       >
         {navItems.map(({ key, label }) => (
@@ -468,7 +496,8 @@ export default function App() {
                     ? 'var(--gold)'
                     : 'rgba(255,255,255,0.7)',
                 fontFamily: 'Tajawal',
-                fontWeight: page === key ? 700 : 400,
+                fontWeight:
+                  page === key ? 700 : 400,
                 whiteSpace: 'nowrap'
               }}
             >
@@ -491,27 +520,52 @@ export default function App() {
 
       <main style={{ padding: 16 }}>
         {page === 'dashboard' && (
-          <Dashboard user={user} lang={lang} />
+          <Dashboard
+            user={user}
+            lang={lang}
+          />
         )}
 
         {page === 'alerts' && (
-          <Alerts user={user} lang={lang} />
+          <Alerts
+            user={user}
+            lang={lang}
+          />
+        )}
+
+        {page === 'tour' && (
+          <Tour
+            user={user}
+            lang={lang}
+          />
         )}
 
         {page === 'sales' && (
-          <Sales user={user} lang={lang} />
+          <Sales
+            user={user}
+            lang={lang}
+          />
         )}
 
         {page === 'waste' && (
-          <Waste user={user} lang={lang} />
+          <Waste
+            user={user}
+            lang={lang}
+          />
         )}
 
         {page === 'tasks' && (
-          <Tasks user={user} lang={lang} />
+          <Tasks
+            user={user}
+            lang={lang}
+          />
         )}
 
         {page === 'kpi' && (
-          <KPI user={user} lang={lang} />
+          <KPI
+            user={user}
+            lang={lang}
+          />
         )}
 
         {page === 'leaderboard' && (
@@ -519,24 +573,34 @@ export default function App() {
         )}
 
         {page === 'announcements' && (
-          <Announcements user={user} lang={lang} />
+          <Announcements
+            user={user}
+            lang={lang}
+          />
         )}
 
         {page === 'maintenance' && (
-          <Maintenance user={user} lang={lang} />
+          <Maintenance
+            user={user}
+            lang={lang}
+          />
         )}
 
         {page === 'changepassword' && (
-          <ChangePassword user={user} lang={lang} />
+          <ChangePassword
+            user={user}
+            lang={lang}
+          />
         )}
 
         {page === 'compliance' && (
           <TasksCompliance lang={lang} />
         )}
 
-        {page === 'admin' && user.role === 'owner' && (
-          <AdminPanel lang={lang} />
-        )}
+        {page === 'admin' &&
+          user.role === 'owner' && (
+            <AdminPanel lang={lang} />
+          )}
       </main>
     </div>
   )
