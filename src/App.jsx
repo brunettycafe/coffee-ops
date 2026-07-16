@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import Login from './pages/Login.jsx'
 import Dashboard from './pages/Dashboard.jsx'
+import Alerts from './pages/Alerts.jsx'
 import Tasks from './pages/Tasks.jsx'
 import Announcements from './pages/Announcements.jsx'
 import AdminPanel from './pages/AdminPanel.jsx'
